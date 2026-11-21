@@ -299,6 +299,10 @@
                         <span class="time-display" id="time-display">00:00 / 00:00</span>
                     </div>
                     <div class="controls-right">
+                        <div class="op-ed-wrap" id="op-ed-wrap" style="display: none;">
+                            <button class="skip-btn" id="btn-set-op" onclick="event.stopPropagation(); toggleSetOp()">⏭ 記住片頭</button>
+                            <button class="skip-btn" id="btn-set-ed" onclick="event.stopPropagation(); toggleSetEd()">⏮ 記住片尾</button>
+                        </div>
                         <button class="ctrl-btn" id="fs-btn">⛶ 全螢幕</button>
                     </div>
                 </div>
@@ -306,10 +310,6 @@
 
             <div class="player-bottom-bar">
                 <div class="playing-title" id="playing-title">目前尚未播放影片</div>
-                <div class="op-ed-wrap" id="op-ed-wrap" style="display: none;">
-                    <button class="skip-btn" id="btn-set-op" onclick="toggleSetOp()">⏭ 記住片頭</button>
-                    <button class="skip-btn" id="btn-set-ed" onclick="toggleSetEd()">⏮ 記住片尾</button>
-                </div>
             </div>
         </div>
 
@@ -1405,6 +1405,7 @@
         }
 
         function toggleSetOp() {
+            resetControlsTimer();
             if (!currentVod || !currentVod.vod_name) return;
             const rules = getOpEdRules();
             const name = currentVod.vod_name;
@@ -1428,6 +1429,7 @@
         }
 
         function toggleSetEd() {
+            resetControlsTimer();
             if (!currentVod || !currentVod.vod_name || !video.duration) return;
             const rules = getOpEdRules();
             const name = currentVod.vod_name;
