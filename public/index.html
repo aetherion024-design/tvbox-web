@@ -132,6 +132,25 @@
 
         .player-bottom-bar { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: #181818; border-top: 1px solid #2a2a2a; }
         .playing-title { font-size: 15px; font-weight: bold; word-break: break-all; }
+        .op-ed-wrap { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+        .skip-btn {
+            background: #252525;
+            border: 1px solid #444;
+            color: #ccc;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .skip-btn:hover { background: #333; color: #fff; }
+        .skip-btn.active {
+            background: #193322;
+            border-color: #00cc66;
+            color: #00ff88;
+            font-weight: bold;
+        }
 
         .episodes-box { background: #181818; border-radius: 8px; padding: 15px; max-height: 490px; overflow-y: auto; }
         .episodes-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
@@ -287,6 +306,10 @@
 
             <div class="player-bottom-bar">
                 <div class="playing-title" id="playing-title">目前尚未播放影片</div>
+                <div class="op-ed-wrap" id="op-ed-wrap" style="display: none;">
+                    <button class="skip-btn" id="btn-set-op" onclick="toggleSetOp()">⏭ 記住片頭</button>
+                    <button class="skip-btn" id="btn-set-ed" onclick="toggleSetEd()">⏮ 記住片尾</button>
+                </div>
             </div>
         </div>
 
@@ -522,6 +545,16 @@
                 lastAutoSaveTime = now;
                 syncCurrentProgress(video.currentTime);
             }
+
+            // 片尾自動跳下一集檢查
+            const opEd = getCurrentOpEd();
+            if (opEd && opEd.edTail > 0 && video.duration > 0 && !isTriggeringNext && !video.paused) {
+                const remain = video.duration - video.currentTime;
+                if (remain <= opEd.edTail && video.currentTime > (opEd.op || 30) + 10) {
+                    isTriggeringNext = true;
+                    playNextEpisode('片尾倒數完畢');
+                }
+            }
         });
 
         video.addEventListener('pause', () => {
@@ -532,18 +565,8 @@
 
         // 當前集數播完後，自動無縫接續下一集
         video.addEventListener('ended', () => {
-            const epButtons = Array.from(document.querySelectorAll('.ep-btn'));
-            const activeIdx = epButtons.findIndex(b => b.classList.contains('active'));
-
-            if (activeIdx !== -1 && activeIdx + 1 < epButtons.length) {
-                const nextBtn = epButtons[activeIdx + 1];
-                skipToast.textContent = `▶ 本集播放完畢，自動接續：${nextBtn.textContent}`;
-                skipToast.style.display = 'block';
-
-                setTimeout(() => {
-                    skipToast.style.display = 'none';
-                    nextBtn.click();
-                }, 1500);
+            if (!isTriggeringNext) {
+                playNextEpisode('本集播放結束');
             }
         });
 
@@ -1217,6 +1240,7 @@
         function renderEpisodes(vod, targetEpName = '', startTime = 0) {
             currentVod = vod;
             updateFavBtnUI();
+            updateOpEdUI();
 
             document.getElementById('playing-title').textContent = vod.vod_name;
             const epContainer = document.getElementById('episodes-grid');
@@ -1272,6 +1296,8 @@
         }
 
         function playStream(rawUrl, title, startTime = 0) {
+            isTriggeringNext = false;
+            updateOpEdUI();
             const titleEl = document.getElementById('playing-title');
             titleEl.textContent = `準備載入：${title}`;
 
@@ -1288,6 +1314,14 @@
                     skipToast.textContent = `▶ 已自動接續至：${formatProgressChinese(startTime)}`;
                     skipToast.style.display = 'block';
                     setTimeout(() => { skipToast.style.display = 'none'; }, 2500);
+                } else {
+                    const rule = getCurrentOpEd();
+                    if (rule && rule.op > 0) {
+                        video.currentTime = rule.op;
+                        skipToast.textContent = `⏭ 已為全劇自動跳過片頭至：${formatTime(rule.op)}`;
+                        skipToast.style.display = 'block';
+                        setTimeout(() => { skipToast.style.display = 'none'; }, 2800);
+                    }
                 }
             };
 
@@ -1320,6 +1354,115 @@
                 video.play();
                 applyStartTime();
                 updateVolumeUI();
+            }
+        }
+
+        // ==========================================
+        // 全劇片頭 / 片尾記憶規則管理 (依影片名稱綁定所有集數)
+        // ==========================================
+        let isTriggeringNext = false;
+
+        function getOpEdRules() {
+            try { return JSON.parse(localStorage.getItem('tvbox_op_ed_rules') || '{}'); } catch(e) { return {}; }
+        }
+
+        function saveOpEdRules(rules) {
+            localStorage.setItem('tvbox_op_ed_rules', JSON.stringify(rules));
+        }
+
+        function getCurrentOpEd() {
+            if (!currentVod || !currentVod.vod_name) return null;
+            const rules = getOpEdRules();
+            return rules[currentVod.vod_name] || null;
+        }
+
+        function updateOpEdUI() {
+            const wrap = document.getElementById('op-ed-wrap');
+            const btnOp = document.getElementById('btn-set-op');
+            const btnEd = document.getElementById('btn-set-ed');
+            if (!currentVod || !currentVod.vod_name) {
+                if (wrap) wrap.style.display = 'none';
+                return;
+            }
+            if (wrap) wrap.style.display = 'flex';
+
+            const rule = getCurrentOpEd();
+            if (rule && rule.op > 0) {
+                btnOp.textContent = `⏭ 片頭 ${formatTime(rule.op)} (點擊取消)`;
+                btnOp.classList.add('active');
+            } else {
+                btnOp.textContent = `⏭ 記住片頭`;
+                btnOp.classList.remove('active');
+            }
+
+            if (rule && rule.edTail > 0) {
+                btnEd.textContent = `⏮ 片尾 倒數${formatTime(rule.edTail)} (點擊取消)`;
+                btnEd.classList.add('active');
+            } else {
+                btnEd.textContent = `⏮ 記住片尾`;
+                btnEd.classList.remove('active');
+            }
+        }
+
+        function toggleSetOp() {
+            if (!currentVod || !currentVod.vod_name) return;
+            const rules = getOpEdRules();
+            const name = currentVod.vod_name;
+            const current = rules[name] || {};
+
+            if (current.op > 0) {
+                delete current.op;
+                skipToast.textContent = `❌ 已取消《${name}》全劇片頭跳過`;
+            } else {
+                const t = Math.floor(video.currentTime || 0);
+                if (t <= 5) return alert('請播放到片頭結束的位置再點擊記錄');
+                current.op = t;
+                skipToast.textContent = `✅ 已記住《${name}》片頭 (${formatTime(t)})，所有集數開始時將自動跳過`;
+            }
+
+            rules[name] = current;
+            saveOpEdRules(rules);
+            updateOpEdUI();
+            skipToast.style.display = 'block';
+            setTimeout(() => { skipToast.style.display = 'none'; }, 2800);
+        }
+
+        function toggleSetEd() {
+            if (!currentVod || !currentVod.vod_name || !video.duration) return;
+            const rules = getOpEdRules();
+            const name = currentVod.vod_name;
+            const current = rules[name] || {};
+
+            if (current.edTail > 0) {
+                delete current.edTail;
+                skipToast.textContent = `❌ 已取消《${name}》全劇片尾跳過`;
+            } else {
+                const remain = Math.floor(video.duration - video.currentTime);
+                if (remain <= 5 || remain >= video.duration - 30) return alert('請播放到片尾曲即將開始的位置再點擊記錄');
+                current.edTail = remain;
+                skipToast.textContent = `✅ 已記住《${name}》片尾 (倒數 ${formatTime(remain)})，所有集數到此處將自動換集`;
+            }
+
+            rules[name] = current;
+            saveOpEdRules(rules);
+            updateOpEdUI();
+            skipToast.style.display = 'block';
+            setTimeout(() => { skipToast.style.display = 'none'; }, 2800);
+        }
+
+        function playNextEpisode(reason = '本集播放結束') {
+            const epButtons = Array.from(document.querySelectorAll('.ep-btn'));
+            const activeIdx = epButtons.findIndex(b => b.classList.contains('active'));
+
+            if (activeIdx !== -1 && activeIdx + 1 < epButtons.length) {
+                const nextBtn = epButtons[activeIdx + 1];
+                skipToast.textContent = `▶ ${reason}，自動接續：${nextBtn.textContent}`;
+                skipToast.style.display = 'block';
+
+                setTimeout(() => {
+                    skipToast.style.display = 'none';
+                    nextBtn.click();
+                }, 1500);
             }
         }
     </script>
