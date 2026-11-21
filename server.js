@@ -5,13 +5,13 @@ const path = require('path');
 const CryptoJS = require('crypto-js');
 
 const app = express();
-// 相容本機與 Render 雲端平台動態分配的 PORT
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json({ limit: '15mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// 常見 AES 金鑰庫（純加解密演算工具，無特定版權資料）
 const KNOWN_KEYS = [
     { key: '1234567890123456', iv: '1234567890123456' },
     { key: '2023061618181818', iv: '2023061618181818' },
@@ -43,18 +43,18 @@ function tryDecryptConfig(rawStr) {
     return null;
 }
 
-// 解析使用者上傳的自訂本機 TXT / JSON 內容
+// 解析使用者本機上傳的自訂設定檔
 app.post('/api/parse-custom-config', (req, res) => {
     const { rawContent } = req.body;
     if (!rawContent) return res.status(400).json({ error: '檔案內容為空' });
 
     let configObj = tryDecryptConfig(rawContent);
     if (!configObj || typeof configObj !== 'object') {
-        return res.status(400).json({ error: '無法解密或解析該自訂檔案' });
+        return res.status(400).json({ error: '無法解析該設定檔' });
     }
 
     if (Array.isArray(configObj.urls)) {
-        return res.json({ type: 'urls', list: configObj.urls });
+        return res.json({ type: 'urls', list: configObj.urls, sites: configObj.sites || [] });
     }
     if (Array.isArray(configObj.sites)) {
         return res.json({ type: 'sites', list: configObj.sites });
@@ -63,7 +63,7 @@ app.post('/api/parse-custom-config', (req, res) => {
     res.json({ type: 'unknown', data: configObj });
 });
 
-// 解析遠端 URL 配置
+// 遠端連線代理：純轉發解析使用者指定的遠端訂閱
 app.get('/api/fetch-config', async (req, res) => {
     let targetUrl = req.query.url;
     if (!targetUrl) return res.status(400).send('缺少 url 參數');
@@ -72,12 +72,12 @@ app.get('/api/fetch-config', async (req, res) => {
         targetUrl = encodeURI(targetUrl);
         const response = await axios.get(targetUrl, {
             headers: { 'User-Agent': 'okhttp/3.15.0', 'Accept': '*/*' },
-            timeout: 10000,
+            timeout: 8000,
             responseType: 'text'
         });
         let configObj = tryDecryptConfig(response.data);
         if (!configObj || typeof configObj !== 'object' || !Array.isArray(configObj.sites)) {
-            return res.json({ sites: [], errorMsg: '遠端內容無法解析為有效站點配置' });
+            return res.json({ sites: [], errorMsg: '該遠端線路未回傳標準站點或解析受限' });
         }
         res.json({ sites: configObj.sites, fromRemote: true });
     } catch (err) {
@@ -85,14 +85,14 @@ app.get('/api/fetch-config', async (req, res) => {
     }
 });
 
-// CMS 片庫列表代理
+// 標準 CMS 影視資料代理
 app.get('/api/cms/list', async (req, res) => {
-    const { api, pg, t, wd } = req.query;
+    const { api, pg, t, wd, ac } = req.query;
     if (!api) return res.status(400).send('缺少 api');
 
     try {
         const separator = api.includes('?') ? '&' : '?';
-        let queryParams = 'ac=detail';
+        let queryParams = ac ? `ac=${ac}` : 'ac=detail';
         if (wd) queryParams += `&wd=${encodeURIComponent(wd)}`;
         if (t) queryParams += `&t=${encodeURIComponent(t)}`;
         queryParams += `&pg=${pg ? pg : '1'}`;
@@ -108,7 +108,7 @@ app.get('/api/cms/list', async (req, res) => {
     }
 });
 
-// 串流 m3u8 代理（使用標準 new URL() 解析，消除 DEP0169 棄用警告）
+// 串流 m3u8 代理（解決瀏覽器 CORS 跨域限制）
 app.get('/api/proxy-m3u8', async (req, res) => {
     const targetUrl = req.query.url;
     if (!targetUrl) return res.status(400).send('缺少 url 參數');
