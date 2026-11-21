@@ -11,7 +11,7 @@ app.use(cors());
 app.use(express.json({ limit: '15mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 常見 AES 金鑰庫（純加解密演算工具，無特定版權資料）
+// 常見 AES 金鑰庫
 const KNOWN_KEYS = [
     { key: '1234567890123456', iv: '1234567890123456' },
     { key: '2023061618181818', iv: '2023061618181818' },
@@ -43,7 +43,7 @@ function tryDecryptConfig(rawStr) {
     return null;
 }
 
-// 解析使用者本機上傳的自訂設定檔
+// 解析使用者本機上傳的設定檔
 app.post('/api/parse-custom-config', (req, res) => {
     const { rawContent } = req.body;
     if (!rawContent) return res.status(400).json({ error: '檔案內容為空' });
@@ -63,7 +63,7 @@ app.post('/api/parse-custom-config', (req, res) => {
     res.json({ type: 'unknown', data: configObj });
 });
 
-// 遠端連線代理：純轉發解析使用者指定的遠端訂閱
+// 遠端連線代理
 app.get('/api/fetch-config', async (req, res) => {
     let targetUrl = req.query.url;
     if (!targetUrl) return res.status(400).send('缺少 url 參數');
@@ -108,7 +108,7 @@ app.get('/api/cms/list', async (req, res) => {
     }
 });
 
-// 串流 m3u8 代理（解決瀏覽器 CORS 跨域限制）
+// 節省流量核心：只代理文字清單（m3u8），真實切片（ts）直接回傳原始網址走前端直連
 app.get('/api/proxy-m3u8', async (req, res) => {
     const targetUrl = req.query.url;
     if (!targetUrl) return res.status(400).send('缺少 url 參數');
@@ -132,10 +132,12 @@ app.get('/api/proxy-m3u8', async (req, res) => {
             if (!trimmed || trimmed.startsWith('#')) return line;
 
             const absoluteUrl = new URL(trimmed, targetUrl).href;
+            
+            // 只有子清單走代理，真正佔用巨量頻寬的影片切片直接提供絕對網址，由瀏覽器直連
             if (trimmed.endsWith('.m3u8') || trimmed.includes('.m3u8?')) {
                 return `/api/proxy-m3u8?url=${encodeURIComponent(absoluteUrl)}`;
             }
-            return `/api/proxy-ts?url=${encodeURIComponent(absoluteUrl)}`;
+            return absoluteUrl;
         }).join('\n');
 
         res.send(rewritten);
@@ -144,7 +146,7 @@ app.get('/api/proxy-m3u8', async (req, res) => {
     }
 });
 
-// 串流 ts 切片轉發代理
+// 保留切片轉發作為備援介面（若無呼叫則不產生流量）
 app.get('/api/proxy-ts', async (req, res) => {
     const targetUrl = req.query.url;
     if (!targetUrl) return res.status(400).send('缺少 url 參數');
