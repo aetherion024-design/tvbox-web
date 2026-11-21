@@ -530,6 +530,23 @@
             }
         });
 
+        // 當前集數播完後，自動無縫接續下一集
+        video.addEventListener('ended', () => {
+            const epButtons = Array.from(document.querySelectorAll('.ep-btn'));
+            const activeIdx = epButtons.findIndex(b => b.classList.contains('active'));
+
+            if (activeIdx !== -1 && activeIdx + 1 < epButtons.length) {
+                const nextBtn = epButtons[activeIdx + 1];
+                skipToast.textContent = `▶ 本集播放完畢，自動接續：${nextBtn.textContent}`;
+                skipToast.style.display = 'block';
+
+                setTimeout(() => {
+                    skipToast.style.display = 'none';
+                    nextBtn.click();
+                }, 1500);
+            }
+        });
+
         progressWrap.addEventListener('click', (e) => {
             e.stopPropagation();
             const rect = progressWrap.getBoundingClientRect();
