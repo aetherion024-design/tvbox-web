@@ -278,7 +278,6 @@
 
     <div class="main-layout">
         <div class="player-box" id="player-box">
-            <!-- 恢復為最穩定單一播放器，消除瀏覽器背景掛起與 CDN 限速超時 -->
             <video id="video-player" autoplay playsinline crossorigin="anonymous"></video>
             
             <div class="skip-toast" id="skip-toast">⚡ 識別到「澳门新葡京娱乐城」，已自動跳過 26 秒</div>
@@ -385,7 +384,9 @@
         let isShowingFavList = false;
         let currentLoadedClasses = [];
 
+        // 存放本機 TXT 內自帶的 sites 站點（由使用者檔案提供）
         let localPresetSites = [];
+
         let ocrWorker = null;
         let isOcrProcessing = false;
 
@@ -562,6 +563,7 @@
             }
         });
 
+        // 當前集數播完後，自動無縫接續下一集
         video.addEventListener('ended', () => {
             if (!isTriggeringNext) {
                 playNextEpisode('本集播放結束');
@@ -669,10 +671,12 @@
                     isOcrProcessing = false;
                     const text = res.data.text.replace(/\s+/g, '');
 
+                    // 1. 核心判定：同時包含「澳門/澳门」與「新葡京」（中間不管夾雜金錢符號 $、空格或任何符號）
                     const hasAoMen = text.includes('澳门') || text.includes('澳門');
                     const hasXinPuJing = text.includes('新葡京');
                     const isAoMenXinPuJing = hasAoMen && hasXinPuJing;
 
+                    // 2. 補充關鍵字與特徵（701701 網址、舊網址 288588、娛樂城、發財）
                     const extraKeywords = ['701701', '288588', '娱乐城', '娛樂城', '发财', '發財', '澳门新', '澳門新'];
                     const hasExtraMatch = extraKeywords.some(kw => text.includes(kw));
 
@@ -720,6 +724,7 @@
             }
         });
 
+        // 記憶同步
         function syncCurrentProgress(currentTime) {
             if (!currentVod || !currentVod.vod_name) return;
 
@@ -742,9 +747,741 @@
             }
         }
 
+        // 觀看紀錄
         function getWatchHistory() {
             try { return JSON.parse(localStorage.getItem('tvbox_history') || '[]'); } catch (e) { return []; }
         }
 
         function saveWatchHistory(vod, epName, streamUrl, playbackTime = 0) {
-            if (!vod || !vod.vod_
+            if (!vod || !vod.vod_name) return;
+            let list = getWatchHistory();
+            list = list.filter(item => item.vod_name !== vod.vod_name);
+            
+            list.unshift({
+                vod_id: vod.vod_id,
+                vod_name: vod.vod_name,
+                vod_pic: vod.vod_pic,
+                vod_play_url: vod.vod_play_url,
+                ep_name: epName,
+                stream_url: streamUrl,
+                playback_time: playbackTime,
+                site_api: document.getElementById('site-select').value,
+                time: Date.now()
+            });
+
+            if (list.length > 25) list = list.slice(0, 25);
+            localStorage.setItem('tvbox_history', JSON.stringify(list));
+            renderHistoryUI();
+        }
+
+        function renderHistoryUI() {
+            const historySec = document.getElementById('history-section');
+            const historyScroll = document.getElementById('history-scroll');
+            const list = getWatchHistory();
+
+            if (list.length === 0) {
+                historySec.style.display = 'none';
+                return;
+            }
+
+            historySec.style.display = 'block';
+            historyScroll.innerHTML = '';
+
+            list.forEach((item, idx) => {
+                const card = document.createElement('div');
+                card.className = 'history-card';
+                const progressText = formatProgressChinese(item.playback_time || 0, item.ep_name);
+
+                card.innerHTML = `
+                    <button class="history-del-btn" title="刪除此紀錄" onclick="deleteHistoryItem(event, ${idx})">✕</button>
+                    <div class="history-thumb-wrap">
+                        <img class="history-thumb" src="${item.vod_pic || ''}" onerror="this.src='https://placehold.co/185x105?text=No+Cover'" />
+                        <span class="history-ep-tag" title="${progressText}">${progressText}</span>
+                    </div>
+                    <div class="history-info">
+                        <div class="history-name" title="${item.vod_name}">${item.vod_name}</div>
+                    </div>
+                `;
+
+                card.onclick = () => {
+                    const siteSelect = document.getElementById('site-select');
+                    if (item.site_api && siteSelect.value !== item.site_api) {
+                        siteSelect.value = item.site_api;
+                    }
+                    renderEpisodes(item, item.ep_name, item.playback_time || 0);
+                };
+
+                historyScroll.appendChild(card);
+            });
+        }
+
+        function deleteHistoryItem(event, index) {
+            event.stopPropagation();
+            let list = getWatchHistory();
+            list.splice(index, 1);
+            localStorage.setItem('tvbox_history', JSON.stringify(list));
+            renderHistoryUI();
+        }
+
+        function clearAllHistory() {
+            if (!confirm('確定要清空所有觀看紀錄嗎？')) return;
+            localStorage.removeItem('tvbox_history');
+            renderHistoryUI();
+        }
+
+        // 我的最愛
+        function getFavorites() {
+            try { return JSON.parse(localStorage.getItem('tvbox_favorites') || '[]'); } catch (e) { return []; }
+        }
+
+        function isFavorite(vodName) {
+            return getFavorites().some(item => item.vod_name === vodName);
+        }
+
+        function updateFavCountBadge() {
+            const list = getFavorites();
+            favCountSpan.textContent = list.length;
+        }
+
+        function removeFavoriteByName(event, vodName) {
+            event.stopPropagation();
+            let list = getFavorites();
+            list = list.filter(item => item.vod_name !== vodName);
+            localStorage.setItem('tvbox_favorites', JSON.stringify(list));
+            
+            updateFavCountBadge();
+            updateFavBtnUI();
+
+            if (isShowingFavList) {
+                renderFavoritesGrid();
+            }
+        }
+
+        function toggleCurrentFavorite() {
+            if (!currentVod) return;
+            let list = getFavorites();
+            const exists = list.some(item => item.vod_name === currentVod.vod_name);
+
+            if (exists) {
+                list = list.filter(item => item.vod_name !== currentVod.vod_name);
+            } else {
+                list.unshift({
+                    vod_id: currentVod.vod_id,
+                    vod_name: currentVod.vod_name,
+                    vod_pic: currentVod.vod_pic,
+                    vod_remarks: currentVod.vod_remarks,
+                    vod_play_url: currentVod.vod_play_url,
+                    site_api: document.getElementById('site-select').value,
+                    last_ep_name: currentEpName,
+                    last_playback_time: video.currentTime || 0,
+                    last_update: Date.now()
+                });
+            }
+
+            localStorage.setItem('tvbox_favorites', JSON.stringify(list));
+            updateFavBtnUI();
+            updateFavCountBadge();
+
+            if (isShowingFavList) {
+                renderFavoritesGrid();
+            }
+        }
+
+        function updateFavBtnUI() {
+            if (!currentVod) {
+                favToggleBtn.style.display = 'none';
+                return;
+            }
+            favToggleBtn.style.display = 'inline-flex';
+            if (isFavorite(currentVod.vod_name)) {
+                favToggleBtn.textContent = '★ 已在最愛';
+                favToggleBtn.classList.add('active');
+            } else {
+                favToggleBtn.textContent = '☆ 加入最愛';
+                favToggleBtn.classList.remove('active');
+            }
+        }
+
+        function showFavoritesTab(btn) {
+            isShowingFavList = true;
+            document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderFavoritesGrid();
+        }
+
+        function renderFavoritesGrid() {
+            const grid = document.getElementById('movie-grid');
+            const list = getFavorites();
+            document.getElementById('pagination').style.display = 'none';
+
+            if (list.length === 0) {
+                grid.innerHTML = '<div style="color:#aaa; padding: 25px; text-align:center;">目前尚無任何收藏影片！<br>在觀看影片時點選「選集列表」旁邊的「☆ 加入最愛」即可收藏。</div>';
+                return;
+            }
+
+            grid.innerHTML = '';
+            list.forEach(vod => {
+                const card = document.createElement('div');
+                card.className = 'movie-card';
+
+                let progressTagHtml = '';
+                if (vod.last_playback_time || vod.last_ep_name) {
+                    const tagText = formatProgressChinese(vod.last_playback_time || 0, vod.last_ep_name);
+                    progressTagHtml = `<div class="card-progress-tag">${tagText}</div>`;
+                }
+
+                card.innerHTML = `
+                    <div class="card-star-btn" title="點擊取消收藏" onclick="removeFavoriteByName(event, '${vod.vod_name.replace(/'/g, "\'")}')">★</div>
+                    <div class="movie-note">${vod.vod_remarks || '已收藏'}</div>
+                    <img src="${vod.vod_pic || ''}" onerror="this.src='https://placehold.co/140x195?text=No+Cover'" />
+                    ${progressTagHtml}
+                    <div class="movie-name" title="${vod.vod_name}">${vod.vod_name}</div>
+                `;
+
+                card.onclick = () => {
+                    const siteSelect = document.getElementById('site-select');
+                    if (vod.site_api && siteSelect.value !== vod.site_api) {
+                        siteSelect.value = vod.site_api;
+                    }
+                    renderEpisodes(vod, vod.last_ep_name || '', vod.last_playback_time || 0);
+                };
+                grid.appendChild(card);
+            });
+        }
+
+        // 分類管理
+        function renderCategoryButtons(classes) {
+            if (!Array.isArray(classes) || classes.length === 0) return;
+            currentLoadedClasses = classes;
+
+            const container = document.getElementById('site-dynamic-categories');
+            container.innerHTML = '';
+
+            const seen = new Set();
+            classes.forEach(c => {
+                if (!c.type_name || seen.has(c.type_name)) return;
+                seen.add(c.type_name);
+
+                const btn = document.createElement('button');
+                btn.className = `cat-btn ${currentTypeId == c.type_id && !isShowingFavList ? 'active' : ''}`;
+                btn.textContent = c.type_name;
+                btn.onclick = () => changeCategory(c.type_id, btn);
+                container.appendChild(btn);
+            });
+        }
+
+        async function fetchSiteCategories(api) {
+            try {
+                const res = await fetch(`/api/cms/list?api=${encodeURIComponent(api)}&ac=list`);
+                const data = await res.json();
+                if (data.class && Array.isArray(data.class) && data.class.length > 0) {
+                    renderCategoryButtons(data.class);
+                }
+            } catch (e) {
+                console.log('無法直接拉取分類清單，改由影片資料提煉');
+            }
+        }
+
+        function changeCategory(typeId, btn) {
+            isShowingFavList = false;
+            document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentTypeId = typeId;
+            currentSearchWord = '';
+            currentPage = 1;
+            fetchVideos();
+        }
+
+        // 初始化
+        window.addEventListener('DOMContentLoaded', () => {
+            renderHistoryUI();
+            updateFavCountBadge();
+            const cachedContent = localStorage.getItem('tvbox_cached_config');
+            if (cachedContent) {
+                parseAndApplyConfig(cachedContent, true);
+            }
+        });
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const rawContent = e.target.result;
+                localStorage.setItem('tvbox_cached_config', rawContent);
+                parseAndApplyConfig(rawContent, false);
+            };
+            reader.readAsText(file);
+        }
+
+        async function parseAndApplyConfig(rawContent, isAutoInit = false) {
+            try {
+                const res = await fetch('/api/parse-custom-config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rawContent: rawContent })
+                });
+                const data = await res.json();
+                const lineSelect = document.getElementById('line-select');
+                lineSelect.innerHTML = '';
+
+                // 如果本機 TXT 包含自訂 sites（例如 8 大直鏈），儲存起來作為切換線路時的保底或獨立選項
+                if (Array.isArray(data.sites) && data.sites.length > 0) {
+                    localPresetSites = data.sites;
+                }
+
+                if (data.type === 'urls') {
+                    // 若自訂檔內有 sites，在最上方插入「🌟 本機直鏈站點」
+                    if (localPresetSites.length > 0) {
+                        const optLocal = document.createElement('option');
+                        optLocal.value = 'local_preset';
+                        optLocal.textContent = '🌟 本機直鏈站點 (精選8站)';
+                        lineSelect.appendChild(optLocal);
+                    }
+
+                    let defaultIndex = 0;
+                    data.list.forEach((item, idx) => {
+                        const opt = document.createElement('option');
+                        opt.value = item.url;
+                        opt.textContent = item.name;
+                        if (item.name && item.name.includes('菜妮丝')) {
+                            defaultIndex = localPresetSites.length > 0 ? idx + 1 : idx;
+                        }
+                        lineSelect.appendChild(opt);
+                    });
+                    lineSelect.selectedIndex = defaultIndex;
+                    await parseSelectedLine(isAutoInit);
+                } else if (data.type === 'sites') {
+                    lineSelect.innerHTML = `<option value="local_preset">🌟 本機直鏈站點</option>`;
+                    renderSites(data.list);
+                } else {
+                    if (!isAutoInit) alert('無法辨識該檔案的結構');
+                }
+            } catch (err) {
+                if (!isAutoInit) alert(`解析自訂檔案失敗: ${err.message}`);
+            }
+        }
+
+        async function parseSelectedLine(isAutoInit = false) {
+            const url = document.getElementById('line-select').value;
+            const siteSelect = document.getElementById('site-select');
+            if (!url) return;
+
+            // 1. 若選擇本機自帶直鏈站點
+            if (url === 'local_preset') {
+                renderSites(localPresetSites);
+                return;
+            }
+
+            siteSelect.innerHTML = '<option>解析站點中...</option>';
+
+            try {
+                const res = await fetch(`/api/fetch-config?url=${encodeURIComponent(url)}`);
+                const data = await res.json();
+
+                let validSites = (data.sites || []).filter(s => {
+                    if (!s || !s.api || typeof s.api !== 'string') return false;
+                    if (s.type === 3 && !s.api.startsWith('http')) return false;
+                    return s.api.startsWith('http');
+                });
+
+                // 若該遠端線路（如飯太硬）未解析出標準 CMS，自動無縫啟用本機提供的 8 大站點
+                if (validSites.length === 0 && localPresetSites.length > 0) {
+                    renderSites(localPresetSites);
+                    return;
+                }
+
+                if (data.errorMsg && !isAutoInit && validSites.length === 0) {
+                    alert(`【線路提示】${data.errorMsg}`);
+                }
+
+                renderSites(validSites);
+            } catch (err) {
+                if (localPresetSites.length > 0) {
+                    renderSites(localPresetSites);
+                } else {
+                    siteSelect.innerHTML = `<option value="">解析錯誤: ${err.message}</option>`;
+                }
+            }
+        }
+
+        function renderSites(sites) {
+            const siteSelect = document.getElementById('site-select');
+            const validSites = (sites || []).filter(s => {
+                if (!s || !s.api || typeof s.api !== 'string') return false;
+                if (s.type === 3 && !s.api.startsWith('http')) return false;
+                return s.api.startsWith('http');
+            });
+
+            siteSelect.innerHTML = '';
+            if (validSites.length === 0) {
+                siteSelect.innerHTML = '<option value="">該線路無任何標準 CMS 站點</option>';
+                return;
+            }
+
+            let defaultSiteIndex = 0;
+            validSites.forEach((s, idx) => {
+                const opt = document.createElement('option');
+                opt.value = s.api;
+                opt.textContent = `${s.name} ${s.type === 3 ? '(爬蟲)' : ''}`;
+                if (s.name && s.name.includes('非凡')) {
+                    defaultSiteIndex = idx;
+                }
+                siteSelect.appendChild(opt);
+            });
+
+            siteSelect.selectedIndex = defaultSiteIndex;
+            onSiteChange();
+        }
+
+        function onSiteChange() {
+            currentPage = 1;
+            currentTypeId = '';
+            currentSearchWord = '';
+            isShowingFavList = false;
+            currentLoadedClasses = [];
+
+            document.getElementById('site-dynamic-categories').innerHTML = '';
+            
+            document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+            const allBtn = document.getElementById('btn-cat-all');
+            if (allBtn) allBtn.classList.add('active');
+
+            const api = document.getElementById('site-select').value;
+            if (api) {
+                fetchSiteCategories(api);
+            }
+
+            document.getElementById('search-input').value = '';
+            fetchVideos();
+        }
+
+        async function doSearch() {
+            let rawWord = document.getElementById('search-input').value.trim();
+            if (!rawWord) return alert('請輸入搜尋關鍵字');
+
+            if (converter) {
+                currentSearchWord = await converter(rawWord);
+            } else {
+                currentSearchWord = rawWord;
+            }
+
+            isShowingFavList = false;
+            currentTypeId = '';
+            currentPage = 1;
+            fetchVideos();
+        }
+
+        function changePage(delta) {
+            if (currentPage + delta < 1) return;
+            currentPage += delta;
+            fetchVideos();
+            window.scrollTo({ top: 450, behavior: 'smooth' });
+        }
+
+        async function fetchVideos() {
+            const api = document.getElementById('site-select').value;
+            if (!api) return;
+
+            const grid = document.getElementById('movie-grid');
+            grid.innerHTML = '<div style="color:#aaa;">正在載入片庫中...</div>';
+
+            let query = `api=${encodeURIComponent(api)}&pg=${currentPage}`;
+            if (currentTypeId) query += `&t=${encodeURIComponent(currentTypeId)}`;
+            if (currentSearchWord) query += `&wd=${encodeURIComponent(currentSearchWord)}`;
+
+            try {
+                const res = await fetch(`/api/cms/list?${query}`);
+                const data = await res.json();
+                
+                if (data.class && Array.isArray(data.class) && data.class.length > 0) {
+                    renderCategoryButtons(data.class);
+                } else if (currentLoadedClasses.length === 0 && data.list && Array.isArray(data.list) && data.list.length > 0) {
+                    const extracted = [];
+                    data.list.forEach(item => {
+                        if (item.type_id && item.type_name) {
+                            extracted.push({ type_id: item.type_id, type_name: item.type_name });
+                        }
+                    });
+                    if (extracted.length > 0) {
+                        renderCategoryButtons(extracted);
+                    }
+                }
+
+                const list = data.list || [];
+                if (list.length === 0) {
+                    grid.innerHTML = `查無相關影片。`;
+                    document.getElementById('pagination').style.display = 'none';
+                    return;
+                }
+
+                grid.innerHTML = '';
+                list.forEach(vod => {
+                    const card = document.createElement('div');
+                    card.className = 'movie-card';
+                    card.innerHTML = `
+                        <div class="movie-note">${vod.vod_remarks || ''}</div>
+                        <img src="${vod.vod_pic || ''}" onerror="this.src='https://placehold.co/140x195?text=No+Cover'" />
+                        <div class="movie-name" title="${vod.vod_name}">${vod.vod_name}</div>
+                    `;
+                    card.onclick = () => renderEpisodes(vod);
+                    grid.appendChild(card);
+                });
+
+                document.getElementById('pagination').style.display = 'flex';
+                document.getElementById('page-indicator').textContent = `第 ${currentPage} 頁`;
+
+            } catch (err) {
+                grid.innerHTML = `<span style="color:red">載入失敗: ${err.message}</span>`;
+            }
+        }
+
+        function renderEpisodes(vod, targetEpName = '', startTime = 0) {
+            currentVod = vod;
+            updateFavBtnUI();
+            updateOpEdUI();
+
+            document.getElementById('playing-title').textContent = vod.vod_name;
+            const epContainer = document.getElementById('episodes-grid');
+            epContainer.innerHTML = '';
+
+            const playUrls = vod.vod_play_url || '';
+            const epList = [];
+
+            const servers = playUrls.split('$$$');
+            let m3u8Group = servers.find(s => s.includes('.m3u8')) || servers[0] || '';
+            const episodes = m3u8Group.split('#');
+
+            episodes.forEach(item => {
+                const parts = item.split('$');
+                if (parts.length >= 2) {
+                    epList.push({ name: parts[0], url: parts[1] });
+                } else if (parts[0] && parts[0].startsWith('http')) {
+                    epList.push({ name: '播放', url: parts[0] });
+                }
+            });
+
+            if (epList.length === 0) {
+                epContainer.innerHTML = '無可用播放鏈接';
+                return;
+            }
+
+            let defaultPlayIndex = 0;
+            if (targetEpName) {
+                const foundIdx = epList.findIndex(e => e.name === targetEpName);
+                if (foundIdx !== -1) defaultPlayIndex = foundIdx;
+            }
+
+            epList.forEach((ep, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'ep-btn';
+                btn.textContent = ep.name;
+                btn.onclick = () => {
+                    document.querySelectorAll('.ep-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentEpName = ep.name;
+                    currentStreamUrl = ep.url;
+                    
+                    const resumeSec = (index === defaultPlayIndex && startTime > 0) ? startTime : 0;
+                    playStream(ep.url, `${vod.vod_name} - ${ep.name}`, resumeSec);
+                    saveWatchHistory(vod, ep.name, ep.url, resumeSec);
+                };
+                epContainer.appendChild(btn);
+
+                if (index === defaultPlayIndex) {
+                    btn.click();
+                }
+            });
+        }
+
+        function playStream(rawUrl, title, startTime = 0) {
+            isTriggeringNext = false;
+            updateOpEdUI();
+            const titleEl = document.getElementById('playing-title');
+            titleEl.textContent = `準備載入：${title}`;
+
+            const proxiedUrl = `/api/proxy-m3u8?url=${encodeURIComponent(rawUrl)}`;
+
+            // 1. 預先計算起播時間點（歷史接續 或 全劇片頭）
+            const rule = getCurrentOpEd();
+            let targetStart = 0;
+            let toastMsg = '';
+            if (startTime > 0) {
+                targetStart = startTime;
+                toastMsg = `▶ 已自動接續至：${formatProgressChinese(startTime)}`;
+            } else if (rule && rule.op > 0) {
+                targetStart = rule.op;
+                toastMsg = `⏭ 已為全劇自動跳過片頭至：${formatTime(rule.op)}`;
+            }
+
+            if (hlsInstance) {
+                hlsInstance.destroy();
+                hlsInstance = null;
+            }
+
+            if (Hls.isSupported()) {
+                // 關鍵優化：超時時間由預設 20 秒縮短為 6 秒，大幅減少切換停頓；並啟用 startPosition 直起
+                hlsInstance = new Hls({
+                    enableWorker: true,
+                    lowLatencyMode: true,
+                    fragLoadingTimeOut: 6000,
+                    manifestLoadingTimeOut: 6000,
+                    levelLoadingTimeOut: 6000,
+                    startPosition: targetStart > 0 ? targetStart : -1
+                });
+                
+                hlsInstance.loadSource(proxiedUrl);
+                hlsInstance.attachMedia(video);
+
+                hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+                    titleEl.textContent = `正在播放：${title}`;
+                    video.play().then(() => {
+                        playBtn.textContent = '❚❚';
+                        if (targetStart > 0) {
+                            if (Math.abs(video.currentTime - targetStart) > 2) {
+                                video.currentTime = targetStart;
+                            }
+                            skipToast.textContent = toastMsg;
+                            skipToast.style.display = 'block';
+                            setTimeout(() => { skipToast.style.display = 'none'; }, 2500);
+                        }
+                    }).catch(e => console.log('等待點擊播放', e));
+                    updateVolumeUI();
+                });
+
+                hlsInstance.on(Hls.Events.ERROR, (event, data) => {
+                    if (data.fatal) {
+                        // 遇到卡死或解碼失敗，直接回退嘗試原直鏈
+                        hlsInstance.loadSource(rawUrl);
+                    }
+                });
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = proxiedUrl;
+                if (targetStart > 0) {
+                    video.addEventListener('loadedmetadata', function onMeta() {
+                        video.currentTime = targetStart;
+                        skipToast.textContent = toastMsg;
+                        skipToast.style.display = 'block';
+                        setTimeout(() => { skipToast.style.display = 'none'; }, 2500);
+                        video.removeEventListener('loadedmetadata', onMeta);
+                    });
+                }
+                video.play();
+                updateVolumeUI();
+            }
+        }
+
+        // ==========================================
+        // 全劇片頭 / 片尾記憶規則管理 (依影片名稱綁定所有集數)
+        // ==========================================
+        let isTriggeringNext = false;
+
+        function getOpEdRules() {
+            try { return JSON.parse(localStorage.getItem('tvbox_op_ed_rules') || '{}'); } catch(e) { return {}; }
+        }
+
+        function saveOpEdRules(rules) {
+            localStorage.setItem('tvbox_op_ed_rules', JSON.stringify(rules));
+        }
+
+        function getCurrentOpEd() {
+            if (!currentVod || !currentVod.vod_name) return null;
+            const rules = getOpEdRules();
+            return rules[currentVod.vod_name] || null;
+        }
+
+        function updateOpEdUI() {
+            const wrap = document.getElementById('op-ed-wrap');
+            const btnOp = document.getElementById('btn-set-op');
+            const btnEd = document.getElementById('btn-set-ed');
+            if (!currentVod || !currentVod.vod_name) {
+                if (wrap) wrap.style.display = 'none';
+                return;
+            }
+            if (wrap) wrap.style.display = 'flex';
+
+            const rule = getCurrentOpEd();
+            if (rule && rule.op > 0) {
+                btnOp.textContent = `⏭ 片頭 ${formatTime(rule.op)} (點擊取消)`;
+                btnOp.classList.add('active');
+            } else {
+                btnOp.textContent = `⏭ 記住片頭`;
+                btnOp.classList.remove('active');
+            }
+
+            if (rule && rule.edTail > 0) {
+                btnEd.textContent = `⏮ 片尾 倒數${formatTime(rule.edTail)} (點擊取消)`;
+                btnEd.classList.add('active');
+            } else {
+                btnEd.textContent = `⏮ 記住片尾`;
+                btnEd.classList.remove('active');
+            }
+        }
+
+        function toggleSetOp() {
+            resetControlsTimer();
+            if (!currentVod || !currentVod.vod_name) return;
+            const rules = getOpEdRules();
+            const name = currentVod.vod_name;
+            const current = rules[name] || {};
+
+            if (current.op > 0) {
+                delete current.op;
+                skipToast.textContent = `❌ 已取消《${name}》全劇片頭跳過`;
+            } else {
+                const t = Math.floor(video.currentTime || 0);
+                if (t <= 5) return alert('請播放到片頭結束的位置再點擊記錄');
+                current.op = t;
+                skipToast.textContent = `✅ 已記住《${name}》片頭 (${formatTime(t)})，所有集數開始時將自動跳過`;
+            }
+
+            rules[name] = current;
+            saveOpEdRules(rules);
+            updateOpEdUI();
+            skipToast.style.display = 'block';
+            setTimeout(() => { skipToast.style.display = 'none'; }, 2800);
+        }
+
+        function toggleSetEd() {
+            resetControlsTimer();
+            if (!currentVod || !currentVod.vod_name || !video.duration) return;
+            const rules = getOpEdRules();
+            const name = currentVod.vod_name;
+            const current = rules[name] || {};
+
+            if (current.edTail > 0) {
+                delete current.edTail;
+                skipToast.textContent = `❌ 已取消《${name}》全劇片尾跳過`;
+            } else {
+                const remain = Math.floor(video.duration - video.currentTime);
+                if (remain <= 5 || remain >= video.duration - 30) return alert('請播放到片尾曲即將開始的位置再點擊記錄');
+                current.edTail = remain;
+                skipToast.textContent = `✅ 已記住《${name}》片尾 (倒數 ${formatTime(remain)})，所有集數到此處將自動換集`;
+            }
+
+            rules[name] = current;
+            saveOpEdRules(rules);
+            updateOpEdUI();
+            skipToast.style.display = 'block';
+            setTimeout(() => { skipToast.style.display = 'none'; }, 2800);
+        }
+
+        function playNextEpisode(reason = '本集播放結束') {
+            const epButtons = Array.from(document.querySelectorAll('.ep-btn'));
+            const activeIdx = epButtons.findIndex(b => b.classList.contains('active'));
+
+            if (activeIdx !== -1 && activeIdx + 1 < epButtons.length) {
+                const nextBtn = epButtons[activeIdx + 1];
+                skipToast.textContent = `▶ ${reason}，自動接續：${nextBtn.textContent}`;
+                skipToast.style.display = 'block';
+
+                setTimeout(() => {
+                    skipToast.style.display = 'none';
+                    nextBtn.click();
+                }, 800);
+            }
+        }
+    </script>
+</body>
+</html>
