@@ -1303,33 +1303,30 @@
 
             const proxiedUrl = `/api/proxy-m3u8?url=${encodeURIComponent(rawUrl)}`;
 
+            // 1. 預先計算起播時間點（歷史接續 或 全劇片頭）
+            const rule = getCurrentOpEd();
+            let targetStart = 0;
+            let toastMsg = '';
+            if (startTime > 0) {
+                targetStart = startTime;
+                toastMsg = `▶ 已自動接續至：${formatProgressChinese(startTime)}`;
+            } else if (rule && rule.op > 0) {
+                targetStart = rule.op;
+                toastMsg = `⏭ 已為全劇自動跳過片頭至：${formatTime(rule.op)}`;
+            }
+
             if (hlsInstance) {
                 hlsInstance.destroy();
                 hlsInstance = null;
             }
 
-            const applyStartTime = () => {
-                if (startTime > 0) {
-                    video.currentTime = startTime;
-                    skipToast.textContent = `▶ 已自動接續至：${formatProgressChinese(startTime)}`;
-                    skipToast.style.display = 'block';
-                    setTimeout(() => { skipToast.style.display = 'none'; }, 2500);
-                } else {
-                    const rule = getCurrentOpEd();
-                    if (rule && rule.op > 0) {
-                        video.currentTime = rule.op;
-                        skipToast.textContent = `⏭ 已為全劇自動跳過片頭至：${formatTime(rule.op)}`;
-                        skipToast.style.display = 'block';
-                        setTimeout(() => { skipToast.style.display = 'none'; }, 2800);
-                    }
-                }
-            };
-
             if (Hls.isSupported()) {
+                // 2. 直接在解碼器層指定起播秒數，直接抓取正片切片，不下載片頭切片
                 hlsInstance = new Hls({
                     enableWorker: true,
                     lowLatencyMode: true,
-                    fragLoadingTimeOut: 20000
+                    fragLoadingTimeOut: 20000,
+                    startPosition: targetStart > 0 ? targetStart : -1
                 });
                 
                 hlsInstance.loadSource(proxiedUrl);
@@ -1339,7 +1336,14 @@
                     titleEl.textContent = `正在播放：${title}`;
                     video.play().then(() => {
                         playBtn.textContent = '❚❚';
-                        applyStartTime();
+                        if (targetStart > 0) {
+                            if (Math.abs(video.currentTime - targetStart) > 2) {
+                                video.currentTime = targetStart;
+                            }
+                            skipToast.textContent = toastMsg;
+                            skipToast.style.display = 'block';
+                            setTimeout(() => { skipToast.style.display = 'none'; }, 2500);
+                        }
                     }).catch(e => console.log('等待點擊播放', e));
                     updateVolumeUI();
                 });
@@ -1351,8 +1355,16 @@
                 });
             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                 video.src = proxiedUrl;
+                if (targetStart > 0) {
+                    video.addEventListener('loadedmetadata', function onMeta() {
+                        video.currentTime = targetStart;
+                        skipToast.textContent = toastMsg;
+                        skipToast.style.display = 'block';
+                        setTimeout(() => { skipToast.style.display = 'none'; }, 2500);
+                        video.removeEventListener('loadedmetadata', onMeta);
+                    });
+                }
                 video.play();
-                applyStartTime();
                 updateVolumeUI();
             }
         }
