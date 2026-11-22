@@ -3,6 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <!-- 支援 iPhone / Android 加入主畫面時徹底隱藏網址列，達成 100% 無邊框真全螢幕 -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0f0f0f">
     <title>Web TVBox 影視中心</title>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/opencc-js@1.0.5/dist/umd/full.js"></script>
@@ -11,22 +16,34 @@
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         html, body {
             overscroll-behavior: none;
+            background: #0f0f0f;
+            margin: 0;
+            padding: 0;
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background: #0f0f0f;
             color: #f1f1f1;
-            margin: 0;
             padding: 20px;
             transition: max-width 0.25s ease, padding 0.25s ease;
         }
 
-        /* 鎖死背景捲動（全螢幕時啟用） */
+        /* 全螢幕時徹底鎖死背景頁面，避免拖動或露白 */
         body.lock-scroll {
             overflow: hidden !important;
-            position: fixed;
-            width: 100%;
-            height: 100%;
+            background: #000 !important;
+        }
+        body.lock-scroll > *:not(.main-layout) {
+            display: none !important;
+        }
+        body.lock-scroll .main-layout {
+            margin: 0 !important;
+            padding: 0 !important;
+            display: block !important;
+        }
+        body.lock-scroll .episodes-box,
+        body.lock-scroll .player-bottom-bar {
+            display: none !important;
         }
 
         /* 手機版樣式 */
@@ -145,20 +162,21 @@
             overscroll-behavior: none !important;
         }
 
-        /* 標準系統全螢幕樣式 */
+        /* Android / 桌面原生全螢幕 */
         .player-box:fullscreen,
         .player-box:-webkit-full-screen {
             width: 100vw !important;
             height: 100vh !important;
+            height: 100dvh !important;
             border-radius: 0 !important;
             touch-action: none !important;
+            background: #000 !important;
         }
 
-        /* iPhone / Safari 網頁擬真全螢幕（支援直向自動轉橫放滿版，100% 保留所有手勢與標題） */
+        /* iPhone (Safari & Chrome) 滿版全螢幕（自動適應直立/橫向，鋪滿可視區域） */
         .player-box.pseudo-fullscreen {
             position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
+            inset: 0 !important;
             width: 100vw !important;
             height: 100vh !important;
             height: 100dvh !important;
@@ -166,10 +184,14 @@
             border-radius: 0 !important;
             background: #000 !important;
             touch-action: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
         }
-        /* 若手機處於直立握持狀態，自動旋轉 90 度變為橫放全螢幕 */
+
+        /* 當手機為直立握持且點擊全螢幕時，自動旋轉 90 度鋪滿全螢幕 */
         @media screen and (orientation: portrait) {
             .player-box.pseudo-fullscreen.auto-rotate-landscape {
+                inset: auto !important;
                 width: 100vh !important;
                 width: 100dvh !important;
                 height: 100vw !important;
@@ -183,14 +205,14 @@
         .player-box.hide-cursor { cursor: none !important; }
         .player-box.hide-cursor * { cursor: none !important; }
 
-        /* 全螢幕左上角片名與集數頂部浮動欄 */
+        /* 全螢幕左上角片名與集數頂部浮動欄（含 iPhone 劉海安全區保護） */
         .video-top-bar {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             background: linear-gradient(rgba(0,0,0,0.88), transparent);
-            padding: 14px 20px 28px max(20px, env(safe-area-inset-left));
+            padding: 14px max(20px, env(safe-area-inset-right)) 28px max(20px, env(safe-area-inset-left));
             color: #fff;
             font-size: 16px;
             font-weight: bold;
@@ -207,10 +229,10 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+            text-shadow: 0 1px 4px rgba(0,0,0,0.95);
         }
         body.mobile-mode .video-top-bar {
-            padding: 12px 16px 24px max(16px, env(safe-area-inset-left));
+            padding: max(12px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) 24px max(18px, env(safe-area-inset-left));
             font-size: 14px;
         }
         .player-box:fullscreen .video-top-bar,
@@ -221,10 +243,10 @@
         .video-top-bar.show { opacity: 1; pointer-events: auto; }
 
         .btn-exit-fs-top {
-            background: rgba(255, 255, 255, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.35);
+            background: rgba(255, 255, 255, 0.16);
+            border: 1px solid rgba(255, 255, 255, 0.38);
             color: #fff;
-            padding: 4px 10px;
+            padding: 5px 12px;
             border-radius: 6px;
             font-size: 12px;
             flex-shrink: 0;
@@ -243,6 +265,7 @@
             height: auto;
             max-height: 70vh;
         }
+        /* 全螢幕時影片本體撐滿容器，消除多餘上下黑邊 */
         .player-box:fullscreen video,
         .player-box:-webkit-full-screen video,
         .player-box.pseudo-fullscreen video {
@@ -297,7 +320,7 @@
             width: 50%;
         }
 
-        /* 底部控制列 */
+        /* 底部控制列（含安全區內距） */
         .custom-controls {
             position: absolute;
             bottom: 0;
@@ -306,14 +329,17 @@
             background: linear-gradient(transparent, rgba(0,0,0,0.95));
             display: flex;
             flex-direction: column;
-            padding: 8px 16px max(12px, env(safe-area-inset-bottom));
+            padding: 8px max(16px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
             gap: 6px;
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.25s ease-in-out;
             z-index: 1200;
         }
-        body.mobile-mode .custom-controls { padding: 6px 14px max(10px, env(safe-area-inset-bottom)); gap: 4px; }
+        body.mobile-mode .custom-controls {
+            padding: 6px max(16px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+            gap: 4px;
+        }
         .custom-controls.show { opacity: 1; pointer-events: auto; }
 
         .progress-bar-wrap {
@@ -749,7 +775,7 @@
         let lastSkipTime = 0;
         let controlsHideTimer = null;
         let previousVolume = 1;
-        let videoBrightness = 1.0; // 亮度 0.2 ~ 1.3
+        let videoBrightness = 1.0;
 
         let currentVod = null;
         let currentEpName = '';
@@ -767,6 +793,13 @@
         let converter = null;
         if (window.OpenCC) {
             converter = OpenCC.Converter({ from: 'tw', to: 'cn' });
+        }
+
+        // 精準識別所有 iOS 裝置與瀏覽器（包含 iPhone Safari、iPhone Chrome CriOS、Edge EdgiOS）
+        function isIOSDevice() {
+            const ua = navigator.userAgent || '';
+            return /iPad|iPhone|iPod|CriOS|FxiOS|EdgiOS/.test(ua) ||
+                   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         }
 
         // ==========================================
@@ -798,7 +831,7 @@
             } else if (saved === 'desktop') {
                 applyDeviceMode(false);
             } else {
-                applyDeviceMode(window.innerWidth < 900);
+                applyDeviceMode(window.innerWidth < 900 || isIOSDevice());
             }
         })();
 
@@ -880,16 +913,20 @@
         applySliderColor(1);
 
         // ==========================================
-        // 全螢幕系統 (兼容 Android 原生容器全螢幕 + iPhone 擬真橫向全螢幕)
+        // 全螢幕系統 (完整支援 Android 原生橫屏全螢幕 + iPhone Chrome/Safari 滿版全螢幕)
         // ==========================================
         function isFullscreenActive() {
             return !!(document.fullscreenElement || document.webkitFullscreenElement || isPseudoFullscreen);
         }
 
+        function isPortraitViewport() {
+            return window.innerHeight > window.innerWidth;
+        }
+
         function isRotatedPortraitPseudoFs() {
             return isPseudoFullscreen &&
                    playerBox.classList.contains('auto-rotate-landscape') &&
-                   window.innerHeight > window.innerWidth;
+                   isPortraitViewport();
         }
 
         async function lockLandscapeOrientation() {
@@ -909,15 +946,17 @@
             } catch (err) {}
         }
 
-        function enterPseudoFullscreen(rotateLandscape = true) {
+        function enterPseudoFullscreen(rotateWhenPortrait = true) {
             isPseudoFullscreen = true;
             savedScrollY = window.scrollY || 0;
             document.body.classList.add('lock-scroll');
             playerBox.classList.add('pseudo-fullscreen');
-            if (rotateLandscape) {
+            if (rotateWhenPortrait) {
                 playerBox.classList.add('auto-rotate-landscape');
             }
             fsBtn.textContent = '🗗 縮小';
+            // 觸發瀏覽器收合頂部網址列工具欄
+            setTimeout(() => { window.scrollTo(0, 1); }, 60);
             resetControlsTimer();
         }
 
@@ -942,6 +981,18 @@
             fsBtn.textContent = '⛶ 全螢幕';
         }
 
+        // 當使用者在全螢幕期間將手機從直拿轉為橫拿（或橫拿轉直拿），自動重置捲動以維持滿版
+        window.addEventListener('resize', () => {
+            if (isPseudoFullscreen) {
+                setTimeout(() => { window.scrollTo(0, 1); }, 80);
+            }
+        });
+        window.addEventListener('orientationchange', () => {
+            if (isPseudoFullscreen) {
+                setTimeout(() => { window.scrollTo(0, 1); }, 120);
+            }
+        });
+
         function onNativeFullscreenChange() {
             const isNativeFull = !!(document.fullscreenElement || document.webkitFullscreenElement);
             if (isNativeFull) {
@@ -962,15 +1013,13 @@
                 return;
             }
 
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-                          (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-
-            // iPhone / iPad 不支援 div 的 requestFullscreen，使用自訂擬真橫向全螢幕（保留所有手勢與左上角標題）
-            if (isIOS || (!playerBox.requestFullscreen && !playerBox.webkitRequestFullscreen)) {
+            // iPhone / iPad (含 Safari、Chrome CriOS 等) 使用滿版擬真全螢幕，確保所有手勢、亮度與左上角片名完整顯示
+            if (isIOSDevice() || (!playerBox.requestFullscreen && !playerBox.webkitRequestFullscreen)) {
                 enterPseudoFullscreen(isMobileMode);
                 return;
             }
 
+            // Android / 桌面瀏覽器呼叫原生全螢幕並自動橫向鎖定
             try {
                 if (playerBox.requestFullscreen) {
                     await playerBox.requestFullscreen();
@@ -978,7 +1027,6 @@
                     playerBox.webkitRequestFullscreen();
                 }
             } catch (err) {
-                // 若瀏覽器拒絕系統全螢幕（例如模擬器或權限限制），無縫退回擬真橫向全螢幕
                 enterPseudoFullscreen(isMobileMode);
             }
         }
@@ -1015,7 +1063,6 @@
 
         // ==========================================
         // 手機版全方位觸控手勢引擎（直式/橫式/全螢幕 100% 適用）
-        // - 自動校正旋轉 90 度座標系
         // - 雙擊左/右：倒退 10 秒 / 快轉 10 秒
         // - 左側上下滑動：調整亮度增加 / 減少
         // - 右側上下滑動：調整音量增加 / 減少
@@ -1061,7 +1108,6 @@
             const rawY = touch.clientY - rect.top;
 
             if (isRotatedPortraitPseudoFs()) {
-                // 順時針旋轉 90 度後：視覺 X 軸 = 原始 Y 軸；視覺 Y 軸 = rect.width - rawX
                 return {
                     x: rawY,
                     y: rect.width - rawX,
@@ -1079,7 +1125,6 @@
 
         playerBox.addEventListener('touchstart', (e) => {
             if (!isMobileMode || e.touches.length !== 1) return;
-            // 若點擊的是底部控制列或頂部退出按鈕，交由按鈕本身處理
             if (e.target.closest('.custom-controls') || e.target.closest('.video-top-bar')) {
                 return;
             }
@@ -1097,14 +1142,12 @@
                 return;
             }
 
-            // 全螢幕或手勢滑動時徹底鎖死頁面預設捲動，螢幕絕不會被拉著跑
             e.preventDefault();
 
             const coords = getNormalizedTouchCoords(e.touches[0]);
             const deltaX = coords.x - touchStartX;
             const deltaY = coords.y - touchStartY;
 
-            // 首次超過門檻（10px）時鎖定手勢方向（垂直 vs 水平）
             if (!touchGestureType && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
                 if (Math.abs(deltaY) >= Math.abs(deltaX)) {
                     const isLeftHalf = touchStartX < (coords.width / 2);
@@ -1125,14 +1168,12 @@
             }
 
             if (touchGestureType === 'brightness') {
-                // 左側往上滑 (deltaY < 0) 亮度增加，往下滑亮度減少
                 const change = (-deltaY / coords.height) * 1.15;
                 videoBrightness = Math.max(0.2, Math.min(1.3, initialGestureVal + change));
                 video.style.filter = `brightness(${videoBrightness.toFixed(2)})`;
                 const pct = Math.round(((videoBrightness - 0.2) / 1.1) * 100);
                 showGestureOsd(`☀️ 亮度 ${pct}%`, pct);
             } else if (touchGestureType === 'volume') {
-                // 右側往上滑 (deltaY < 0) 音量增加，往下滑音量降低
                 const change = (-deltaY / coords.height) * 1.1;
                 const newVol = Math.max(0, Math.min(1, initialGestureVal + change));
                 video.volume = newVol;
@@ -1141,8 +1182,6 @@
                 const pct = Math.round(newVol * 100);
                 showGestureOsd(`${newVol === 0 ? '🔇' : '🔊'} 音量 ${pct}%`, pct);
             } else if (touchGestureType === 'seek' && video.duration) {
-                // 往右滑 (deltaX > 0) 增加進度，往左滑 (deltaX < 0) 減少進度
-                // 滑滿整個畫面寬度約調整 90 秒（或影片總長度的 35%，取較大值以兼顧長短片）
                 const spanSeconds = Math.max(90, Math.min(300, video.duration * 0.35));
                 const seekDelta = (deltaX / coords.width) * spanSeconds;
                 targetSeekTime = Math.max(0, Math.min(video.duration, initialGestureVal + seekDelta));
@@ -1165,7 +1204,6 @@
                 return;
             }
 
-            // 結束手勢滑動
             if (touchGestureType) {
                 if (touchGestureType === 'seek' && video.duration) {
                     video.currentTime = targetSeekTime;
@@ -1184,7 +1222,6 @@
             const isLeftSide = touchStartX < (visualWidth / 2);
 
             if (now - lastTapTime < 280) {
-                // 雙擊左邊倒退 10 秒 / 雙擊右邊快轉 10 秒
                 clearTimeout(singleTapTimer);
                 lastTapTime = 0;
                 if (isLeftSide) {
@@ -1195,7 +1232,6 @@
                     showRipple(rippleRight);
                 }
             } else {
-                // 單擊喚出/隱藏控制列與左上角標題
                 lastTapTime = now;
                 singleTapTimer = setTimeout(() => {
                     lastTapTime = 0;
