@@ -267,7 +267,7 @@
 
         <div class="ad-switch-box">
             <input type="checkbox" id="ai-ad-skip-chk" checked>
-            <label for="ai-ad-skip-chk">⚡ 文字精準識別：新葡京(+26s) / 暴富廣告(+20s)</label>
+            <label for="ai-ad-skip-chk">⚡ 文字精準識別：澳門新葡京娛樂城 (+26s)</label>
         </div>
 
         <div class="search-box">
@@ -621,17 +621,17 @@
             }
         });
 
-        function triggerAdSkip(detectedText = '', skipSeconds = 26, toastLabel = '澳門新葡京') {
+        function triggerAdSkip(detectedText = '') {
             const now = Date.now();
             if (now - lastSkipTime < 3500) return;
             lastSkipTime = now;
 
-            console.log(`%c[精準命中] 識別到廣告文字:「${detectedText}」，立即快進 ${skipSeconds} 秒！`, 'color:#00ff00; font-size:14px; font-weight:bold;');
-            let target = video.currentTime + skipSeconds;
+            console.log(`%c[精準命中] 識別到廣告文字:「${detectedText}」，立即快進 26 秒！`, 'color:#00ff00; font-size:14px; font-weight:bold;');
+            let target = video.currentTime + 26;
             if (video.duration && target > video.duration) target = video.duration;
             video.currentTime = target;
 
-            skipToast.textContent = `⚡ 識別到「${toastLabel}」，已自動跳過 ${skipSeconds} 秒`;
+            skipToast.textContent = `⚡ 識別到「澳门新葡京娱乐城」，已自動跳過 26 秒`;
             skipToast.style.display = 'block';
             setTimeout(() => { skipToast.style.display = 'none'; }, 2500);
         }
@@ -671,31 +671,25 @@
                     isOcrProcessing = false;
                     const text = res.data.text.replace(/\s+/g, '');
 
-                    // 1. 廣告判定：100% 完全符合「别再羡慕别人暴富」完整字句才跳過，零誤判
-                    const isBaoFuAd = text.includes('别再羡慕别人暴富') || text.includes('別再羨慕別人暴富');
-
-                    if (isBaoFuAd) {
-                        triggerAdSkip(text, 20, '别再羡慕别人暴富');
-                        return;
-                    }
-
-                    // 2. 核心判定：同時包含「澳門/澳门」與「新葡京」（中間不管夾雜金錢符號 $、空格或任何符號），快進 26 秒
+                    // 1. 核心判定：同時包含「澳門/澳门」與「新葡京」（中間不管夾雜金錢符號 $、空格或任何符號）
                     const hasAoMen = text.includes('澳门') || text.includes('澳門');
                     const hasXinPuJing = text.includes('新葡京');
                     const isAoMenXinPuJing = hasAoMen && hasXinPuJing;
 
-                    // 3. 補充關鍵字與特徵（701701 網址、舊網址 288588、娛樂城、發財）
+                    // 2. 補充關鍵字與特徵（701701 網址、舊網址 288588、娛樂城、發財）
                     const extraKeywords = ['701701', '288588', '娱乐城', '娛樂城', '发财', '發財', '澳门新', '澳門新'];
                     const hasExtraMatch = extraKeywords.some(kw => text.includes(kw));
 
                     if (isAoMenXinPuJing || hasExtraMatch) {
-                        triggerAdSkip(text, 26, '澳門新葡京');
+                        triggerAdSkip(text);
                     }
                 }
             } catch (err) {
                 isOcrProcessing = false;
             }
-        }, 800);window.addEventListener('keydown', (e) => {
+        }, 800);
+
+        window.addEventListener('keydown', (e) => {
             if (document.activeElement === document.getElementById('search-input')) return;
             
             if (e.key === 'ArrowLeft') {
