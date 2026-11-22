@@ -373,8 +373,8 @@
         </div>
     </div>
 
-    <!-- 擴大畫布取樣視野至 360x130，支援上方橫幅與置中突播字幕 -->
-    <canvas id="ocr-canvas" width="360" height="130" style="display:none;"></canvas>
+    <!-- 保持原版完全相容的 280x100 專用畫布 -->
+    <canvas id="ocr-canvas" width="280" height="100" style="display:none;"></canvas>
 
     <div class="movie-grid" id="movie-grid">載入片庫中...</div>
 
@@ -685,10 +685,10 @@
         }
 
         // ==========================================
-        // 中途突播廣告極速抓取核心 (擴大視野 + 自適應雙重灰階 + 核心詞交叉命中)
+        // 100% 保持原汁原味的原廠 OCR 取樣核心（完全不碰壞濾鏡與畫布）
         // ==========================================
         setInterval(async () => {
-            if (!aiAdSkipChk.checked || video.paused || video.ended || !video.duration || isOcrProcessing || !ocrWorker) return;
+            if (!aiAdSkipChk.checked || video.paused || video.ended || !video.duration || isOcrProcessing) return;
 
             const now = Date.now();
             if (now - lastSkipTime < 3500) return;
@@ -697,22 +697,18 @@
                 const vw = video.videoWidth || 640;
                 const vh = video.videoHeight || 360;
 
-                // 擴大視野範圍 (涵蓋中上方、頂部跑馬燈與全幅大字廣告)
-                const cropX = vw * 0.18;
-                const cropY = vh * 0.14;
-                const cropW = vw * 0.64;
-                const cropH = vh * 0.50;
+                const cropX = vw * 0.28;
+                const cropY = vh * 0.26;
+                const cropW = vw * 0.44;
+                const cropH = vh * 0.32;
 
-                ocrCtx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, 360, 130);
+                ocrCtx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, 280, 100);
 
-                // 自適應灰階增強：兼顧白字、黃金字、紅底白字與描邊特效
-                const imgData = ocrCtx.getImageData(0, 0, 360, 130);
+                const imgData = ocrCtx.getImageData(0, 0, 280, 100);
                 const d = imgData.data;
                 for (let i = 0; i < d.length; i += 4) {
-                    const r = d[i], g = d[i+1], b = d[i+2];
-                    const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
-                    // 明度足夠高(白字) 或 偏黃色調(澳門新葡京)，均直接提亮反白，其餘反黑
-                    if (luminance > 130 || (r > 160 && g > 120)) {
+                    const r = d[i], g = d[i+1];
+                    if (r > 170 && g > 130) {
                         d[i] = 255; d[i+1] = 255; d[i+2] = 255;
                     } else {
                         d[i] = 0; d[i+1] = 0; d[i+2] = 0;
@@ -720,40 +716,41 @@
                 }
                 ocrCtx.putImageData(imgData, 0, 0);
 
-                isOcrProcessing = true;
-                const res = await ocrWorker.recognize(ocrCanvas);
-                isOcrProcessing = false;
+                if (ocrWorker) {
+                    isOcrProcessing = true;
+                    const res = await ocrWorker.recognize(ocrCanvas);
+                    isOcrProcessing = false;
+                    const text = res.data.text.replace(/\s+/g, '');
 
-                // 清洗多餘符號空格，避免換行打斷比對
-                const text = res.data.text.replace(/[\s\p{P}+~$￥]/gu, '');
+                    // 1. 中途插播廣告比對：「别再羡慕别人暴富」（快進 20 秒）
+                    const fullBaoFu = text.includes('别再羡慕别人暴富') || text.includes('別再羨慕別人暴富');
+                    const hasBaoFu = text.includes('暴富');
+                    const hasXianMu = text.includes('羡慕') || text.includes('羨慕') || text.includes('羡') || text.includes('羨');
+                    const hasBieRen = text.includes('别人') || text.includes('別人') || text.includes('别再') || text.includes('別再');
 
-                // 1. 中途插播廣告比對：「别再羡慕别人暴富」
-                // 採用「整句全中」或「暴富 + 羨慕/別人/別再」雙核心交叉鎖定，既確保 0 誤判，又防動態影片單字殘缺
-                const fullBaoFu = text.includes('别再羡慕别人暴富') || text.includes('別再羨慕別人暴富');
-                const hasBaoFu = text.includes('暴富');
-                const hasXianMu = text.includes('羡慕') || text.includes('羨慕') || text.includes('羡') || text.includes('羨');
-                const hasBieRen = text.includes('别人') || text.includes('別人') || text.includes('别再') || text.includes('別再');
+                    // 命中整句，或同時出現「暴富」與「羨慕/別人/別再」，立即快進 20 秒
+                    if (fullBaoFu || (hasBaoFu && (hasXianMu || hasBieRen))) {
+                        triggerAdSkip(text, 20, '别再羡慕别人暴富');
+                        return;
+                    }
 
-                const isBaoFuHit = fullBaoFu || (hasBaoFu && (hasXianMu || hasBieRen));
+                    // 2. 核心判定：同時包含「澳門/澳门」與「新葡京」（快進 26 秒）
+                    const hasAoMen = text.includes('澳门') || text.includes('澳門');
+                    const hasXinPuJing = text.includes('新葡京');
+                    const isAoMenXinPuJing = hasAoMen && hasXinPuJing;
 
-                if (isBaoFuHit) {
-                    triggerAdSkip(text, 20, '别再羡慕别人暴富');
-                    return;
-                }
+                    // 3. 補充關鍵字與特徵（701701 網址、舊網址 288588、娛樂城、發財）
+                    const extraKeywords = ['701701', '288588', '娱乐城', '娛樂城', '发财', '發財', '澳门新', '澳門新'];
+                    const hasExtraMatch = extraKeywords.some(kw => text.includes(kw));
 
-                // 2. 澳門新葡京廣告判定（包含「澳門/澳门」與「新葡京」或 701701 網址），快進 26 秒
-                const hasAoMen = text.includes('澳门') || text.includes('澳門');
-                const hasXinPuJing = text.includes('新葡京');
-                const extraKeywords = ['701701', '288588', '娱乐城', '娛樂城', '发财', '發財', '澳门新', '澳門新'];
-                const hasExtraMatch = extraKeywords.some(kw => text.includes(kw));
-
-                if ((hasAoMen && hasXinPuJing) || hasExtraMatch) {
-                    triggerAdSkip(text, 26, '澳門新葡京');
+                    if (isAoMenXinPuJing || hasExtraMatch) {
+                        triggerAdSkip(text, 26, '澳門新葡京');
+                    }
                 }
             } catch (err) {
                 isOcrProcessing = false;
             }
-        }, 600); // 採樣週期加快為 600ms，第一時間捕捉中途閃出的插播畫面
+        }, 800);
 
         window.addEventListener('keydown', (e) => {
             if (document.activeElement === document.getElementById('search-input')) return;
