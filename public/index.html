@@ -322,7 +322,7 @@
             flex-direction: column;
             align-items: center;
             gap: 8px;
-            min-width: 165px;
+            min-width: 175px;
             text-align: center;
         }
         .gesture-osd.show { opacity: 1; }
@@ -337,11 +337,16 @@
             background: rgba(255,255,255,0.25);
             border-radius: 3px;
             overflow: hidden;
+            position: relative;
         }
         .gesture-osd-fill {
             height: 100%;
             background: #00ff88;
             width: 50%;
+            transition: background-color 0.15s;
+        }
+        .gesture-osd-fill.boost {
+            background: #ffaa00;
         }
 
         /* 底部控制列 */
@@ -412,7 +417,7 @@
         .volume-slider {
             -webkit-appearance: none;
             appearance: none;
-            width: 80px;
+            width: 90px;
             height: 5px;
             background: #555;
             border-radius: 3px;
@@ -434,7 +439,9 @@
         }
         .volume-slider::-webkit-slider-thumb:hover { transform: scale(1.25); background: #e50914; }
         .volume-slider::-moz-range-thumb { width: 13px; height: 13px; border-radius: 50%; background: #fff; border: none; cursor: pointer; }
-        body.mobile-mode .volume-slider { display: none; }
+        .volume-pct-label { font-size: 11px; color: #bbb; font-family: monospace; min-width: 34px; }
+        body.mobile-mode .volume-slider,
+        body.mobile-mode .volume-pct-label { display: none; }
 
         .seek-ripple {
             position: absolute;
@@ -704,7 +711,8 @@
                             <button class="ctrl-btn" id="play-btn">▶</button>
                             <div class="volume-box">
                                 <button class="ctrl-btn" id="mute-btn">🔊</button>
-                                <input type="range" class="volume-slider" id="volume-slider" min="0" max="1" step="0.01" value="1">
+                                <input type="range" class="volume-slider" id="volume-slider" min="0" max="2" step="0.01" value="1">
+                                <span class="volume-pct-label" id="volume-pct-label">100%</span>
                             </div>
                             <span class="time-display" id="time-display">00:00 / 00:00</span>
                         </div>
@@ -767,6 +775,7 @@
         const fsBtn = document.getElementById('fs-btn');
         const muteBtn = document.getElementById('mute-btn');
         const volumeSlider = document.getElementById('volume-slider');
+        const volumePctLabel = document.getElementById('volume-pct-label');
         const progressWrap = document.getElementById('progress-wrap');
         const progressFill = document.getElementById('progress-fill');
         const timeDisplay = document.getElementById('time-display');
@@ -800,16 +809,21 @@
         let controlsHideTimer = null;
         let videoBrightness = 1.0;
 
-        // 獨立軟體音量狀態（解決 iPhone 鎖死 video.volume 導致無法調整且每次從 100% 扣的問題）
-        let appVolume = 1.0;
-        let previousVolume = 1.0;
+        // ==========================================
+        // 方案 A：對數音量曲線 + 最高 200% 軟體增益引擎
+        // - uiVolumeLevel 範圍：0.0 ~ 2.0 (0% ~ 200%，預設 1.0 = 100%)
+        // - 0% ~ 100% 區間採用三次方對數曲線 (level^2.5)，滑一半(50%)即降至約 18% 聲壓，人耳體感極明顯
+        // - 100% ~ 200% 區間線性放大增益至 2.0 倍，解決片源太小聲問題
+        // ==========================================
+        let uiVolumeLevel = 1.0;
+        let previousVolumeLevel = 1.0;
         let isAppMuted = false;
 
-        // Web Audio API 軟體增益節點（讓 iPhone 也能真實調整大小聲）
         let audioCtx = null;
         let gainNode = null;
         let mediaSourceNode = null;
         let webAudioReady = false;
+        let webAudioFailed = false;
 
         let currentVod = null;
         let currentEpName = '';
@@ -835,10 +849,19 @@
                    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         }
 
-        // ==========================================
-        // 跨平台真實音量控制引擎（Web Audio GainNode + 原生雙軌備援）
-        // ==========================================
+        // 將 UI 顯示的音量倍率 (0.0 ~ 2.0) 轉換為符合人耳聽覺的對數實際增益值
+        function computePerceptualGain(level) {
+            if (level <= 0.005) return 0;
+            if (level <= 1.0) {
+                // 對數/指數感知曲線：50% 滑桿 -> ~0.18 增益 (-15dB)，體感明顯變小聲
+                return Math.pow(level, 2.5);
+            }
+            // 100% ~ 200% 軟體增益放大 (1.0 ~ 2.0 倍)
+            return level;
+        }
+
         function ensureWebAudioConnected() {
+            if (webAudioFailed) return false;
             if (webAudioReady) {
                 if (audioCtx && audioCtx.state === 'suspended') {
                     audioCtx.resume().catch(() => {});
@@ -847,11 +870,15 @@
             }
             try {
                 const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-                if (!AudioContextClass) return false;
+                if (!AudioContextClass) {
+                    webAudioFailed = true;
+                    return false;
+                }
                 audioCtx = new AudioContextClass();
                 mediaSourceNode = audioCtx.createMediaElementSource(video);
                 gainNode = audioCtx.createGain();
-                gainNode.gain.value = isAppMuted ? 0 : appVolume;
+                const targetGain = isAppMuted ? 0 : computePerceptualGain(uiVolumeLevel);
+                gainNode.gain.value = targetGain;
                 mediaSourceNode.connect(gainNode);
                 gainNode.connect(audioCtx.destination);
                 webAudioReady = true;
@@ -860,45 +887,46 @@
                 }
                 return true;
             } catch (e) {
-                // 若受 CORS 網域策略限制無法接入 Web Audio，自動退回原生控制
-                console.warn('Web Audio 轉接自動切換為原生控制模式:', e.message);
+                webAudioFailed = true;
+                console.warn('Web Audio 初始化受限，改用原生音量控制:', e.message);
                 return false;
             }
         }
 
-        function setMasterVolume(val, muteState = null) {
-            appVolume = Math.max(0, Math.min(1, val));
+        function setMasterVolume(level, muteState = null) {
+            uiVolumeLevel = Math.max(0, Math.min(2.0, level));
             if (muteState !== null) {
                 isAppMuted = muteState;
             } else {
-                isAppMuted = (appVolume === 0);
+                isAppMuted = (uiVolumeLevel <= 0.005);
             }
 
-            const effectiveVol = isAppMuted ? 0 : appVolume;
+            const perceptualGain = isAppMuted ? 0 : computePerceptualGain(uiVolumeLevel);
+            const hasWebAudio = ensureWebAudioConnected();
 
-            // 1. 套用至 Web Audio GainNode（在 iPhone / iPad 上可真實改變大小聲）
-            if (ensureWebAudioConnected() && gainNode && audioCtx) {
+            // 1. 套用至 Web Audio GainNode（支援 0% ~ 200% 對數調整與增益放大，iPhone 需搭配 CORS 代理）
+            if (hasWebAudio && gainNode && audioCtx) {
                 try {
-                    gainNode.gain.setValueAtTime(effectiveVol, audioCtx.currentTime);
+                    // 使用 setTargetAtTime 避免快速滑動產生爆音
+                    gainNode.gain.setTargetAtTime(perceptualGain, audioCtx.currentTime, 0.015);
                 } catch (e) {
-                    gainNode.gain.value = effectiveVol;
+                    gainNode.gain.value = perceptualGain;
                 }
             }
 
-            // 2. 同步套用至原生 video 元素（Android / 桌面瀏覽器生效，iOS 支援 muted 靜音）
+            // 2. 同步套用至原生 video 元素（上限 1.0，確保未走 Web Audio 的環境也能正常調整 0~100%）
             try {
                 video.muted = isAppMuted;
-                video.volume = effectiveVol;
+                video.volume = Math.min(1.0, perceptualGain);
             } catch (e) {}
 
             updateVolumeUI();
         }
 
-        function getEffectiveVolume() {
-            return isAppMuted ? 0 : appVolume;
+        function getEffectiveLevel() {
+            return isAppMuted ? 0 : uiVolumeLevel;
         }
 
-        // 任何使用者首次點擊或觸碰畫面時，預先解鎖 iOS AudioContext
         function unlockAudioContextOnGesture() {
             if (audioCtx && audioCtx.state === 'suspended') {
                 audioCtx.resume().catch(() => {});
@@ -1035,20 +1063,30 @@
             togglePlayPause();
         });
 
-        function applySliderColor(val) {
-            const pct = Math.round(val * 100);
-            volumeSlider.style.background = `linear-gradient(to right, #e50914 0%, #e50914 ${pct}%, #555 ${pct}%, #555 100%)`;
+        function applySliderColor(level) {
+            // slider 範圍為 0 ~ 2.0，換算成百分比 (0% ~ 100%)
+            const barPct = Math.round((level / 2.0) * 100);
+            const activeColor = level > 1.0 ? '#ffaa00' : '#e50914';
+            volumeSlider.style.background = `linear-gradient(to right, ${activeColor} 0%, ${activeColor} ${barPct}%, #555 ${barPct}%, #555 100%)`;
         }
 
         function updateVolumeUI() {
-            const currentVol = getEffectiveVolume();
-            volumeSlider.value = currentVol;
-            applySliderColor(currentVol);
+            const currentLvl = getEffectiveLevel();
+            volumeSlider.value = currentLvl;
+            applySliderColor(currentLvl);
 
-            if (currentVol === 0 || isAppMuted) {
+            const displayPct = Math.round(currentLvl * 100);
+            if (volumePctLabel) {
+                volumePctLabel.textContent = `${displayPct}%`;
+                volumePctLabel.style.color = currentLvl > 1.0 ? '#ffbb00' : '#bbb';
+            }
+
+            if (currentLvl === 0 || isAppMuted) {
                 muteBtn.textContent = '🔇';
-            } else if (currentVol < 0.5) {
+            } else if (currentLvl < 0.5) {
                 muteBtn.textContent = '🔉';
+            } else if (currentLvl > 1.05) {
+                muteBtn.textContent = '📢';
             } else {
                 muteBtn.textContent = '🔊';
             }
@@ -1058,22 +1096,23 @@
             e.stopPropagation();
             let val = parseFloat(e.target.value);
             if (val <= 0.02) val = 0;
-            if (val >= 0.98) val = 1;
+            // 在 100% (1.0) 附近提供輕微磁吸手感，方便精準拉回原音
+            if (Math.abs(val - 1.0) < 0.04) val = 1.0;
             setMasterVolume(val, val === 0);
         });
 
         muteBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (isAppMuted || appVolume === 0) {
-                const restore = (previousVolume > 0.05) ? previousVolume : 1.0;
+            if (isAppMuted || uiVolumeLevel === 0) {
+                const restore = (previousVolumeLevel > 0.05) ? previousVolumeLevel : 1.0;
                 setMasterVolume(restore, false);
             } else {
-                previousVolume = appVolume;
-                setMasterVolume(appVolume, true);
+                previousVolumeLevel = uiVolumeLevel;
+                setMasterVolume(uiVolumeLevel, true);
             }
         });
 
-        applySliderColor(1);
+        applySliderColor(1.0);
 
         // ==========================================
         // 全螢幕系統
@@ -1224,7 +1263,7 @@
         // 手機版全方位觸控手勢引擎
         // - 雙擊左/右：倒退 10 秒 / 快轉 10 秒
         // - 左側上下滑動：調整亮度增加 / 減少
-        // - 右側上下滑動：調整音量增加 / 減少（記憶上次位置，不跳回 100%）
+        // - 右側上下滑動：對數音量調整 0% ~ 200%（記憶上次位置，超過 100% 進入金色增益放大區）
         // - 左右水平滑動：控制進度條增加 / 減少
         // ==========================================
         let touchStartX = 0;
@@ -1237,7 +1276,7 @@
         let lastTapTime = 0;
         let singleTapTimer = null;
 
-        function showGestureOsd(label, percent, subText = '', showBar = true) {
+        function showGestureOsd(label, barPercent, subText = '', showBar = true, isBoost = false) {
             gestureOsdText.textContent = label;
             if (subText) {
                 gestureOsdSub.textContent = subText;
@@ -1248,7 +1287,12 @@
 
             if (showBar) {
                 gestureOsdBar.style.display = 'block';
-                gestureOsdFill.style.width = `${Math.max(0, Math.min(100, percent))}%`;
+                gestureOsdFill.style.width = `${Math.max(0, Math.min(100, barPercent))}%`;
+                if (isBoost) {
+                    gestureOsdFill.classList.add('boost');
+                } else {
+                    gestureOsdFill.classList.remove('boost');
+                }
             } else {
                 gestureOsdBar.style.display = 'none';
             }
@@ -1315,8 +1359,7 @@
                         initialGestureVal = videoBrightness;
                     } else {
                         touchGestureType = 'volume';
-                        // 直接讀取記憶體中的真實軟體音量，絕不讀被 iOS 鎖死的 video.volume
-                        initialGestureVal = getEffectiveVolume();
+                        initialGestureVal = getEffectiveLevel(); // 0.0 ~ 2.0
                     }
                 } else {
                     if (video.duration && !isNaN(video.duration)) {
@@ -1334,11 +1377,17 @@
                 const pct = Math.round(((videoBrightness - 0.2) / 1.1) * 100);
                 showGestureOsd(`☀️ 亮度 ${pct}%`, pct);
             } else if (touchGestureType === 'volume') {
-                const change = (-deltaY / coords.height) * 1.1;
-                const newVol = Math.max(0, Math.min(1, initialGestureVal + change));
-                setMasterVolume(newVol, newVol === 0);
-                const pct = Math.round(newVol * 100);
-                showGestureOsd(`${pct === 0 ? '🔇' : '🔊'} 音量 ${pct}%`, pct);
+                // 滑滿畫面高度可調整 2.0 (即 0% ~ 200%)
+                const change = (-deltaY / coords.height) * 2.0;
+                const newLvl = Math.max(0, Math.min(2.0, initialGestureVal + change));
+                setMasterVolume(newLvl, newLvl <= 0.005);
+
+                const displayPct = Math.round(newLvl * 100);
+                const barPct = (newLvl / 2.0) * 100;
+                const isBoost = displayPct > 100;
+                const icon = displayPct === 0 ? '🔇' : (isBoost ? '📢' : '🔊');
+                const subHint = isBoost ? '軟體增益放大中' : (displayPct < 50 ? '對數衰減模式' : '');
+                showGestureOsd(`${icon} 音量 ${displayPct}%`, barPct, subHint, true, isBoost);
             } else if (touchGestureType === 'seek' && video.duration) {
                 const spanSeconds = Math.max(90, Math.min(300, video.duration * 0.35));
                 const seekDelta = (deltaX / coords.width) * spanSeconds;
@@ -1634,12 +1683,12 @@
                 showRipple(rippleRight);
             } else if (e.key === 'ArrowUp') {
                 e.preventDefault();
-                const next = Math.min(1, Math.round((getEffectiveVolume() + 0.1) * 10) / 10);
+                const next = Math.min(2.0, Math.round((getEffectiveLevel() + 0.1) * 10) / 10);
                 setMasterVolume(next, false);
                 resetControlsTimer();
             } else if (e.key === 'ArrowDown') {
                 e.preventDefault();
-                const next = Math.max(0, Math.round((getEffectiveVolume() - 0.1) * 10) / 10);
+                const next = Math.max(0, Math.round((getEffectiveLevel() - 0.1) * 10) / 10);
                 setMasterVolume(next, next === 0);
                 resetControlsTimer();
             } else if (e.key.toLowerCase() === 'm') {
@@ -1865,7 +1914,7 @@
                 }
 
                 card.innerHTML = `
-                    <div class="card-star-btn" title="點擊取消收藏" onclick="removeFavoriteByName(event, '${vod.vod_name.replace(/'/g, "\\'")}')">★</div>
+                    <div class="card-star-btn" title="點擊取消收藏" onclick="removeFavoriteByName(event, '${vod.vod_name.replace(/'/g, "\'")}')">★</div>
                     <div class="movie-note">${vod.vod_remarks || '已收藏'}</div>
                     <img src="${vod.vod_pic || ''}" onerror="this.src='https://placehold.co/140x195?text=No+Cover'" />
                     ${progressTagHtml}
@@ -2235,7 +2284,7 @@
             updatePlayingTitle(`準備載入：${title}`);
             ensureWebAudioConnected();
 
-            const proxiedUrl = `/api/proxy-m3u8?url=${encodeURIComponent(rawUrl)}`;
+            const proxiedUrl = `/api/proxy-m3u8?url=${encodeURIComponent(rawUrl)}${isIOSDevice() ? '&cors_ts=1' : ''}`;
 
             const rule = getCurrentOpEd();
             let targetStart = 0;
@@ -2276,7 +2325,7 @@
 
                 hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
                     updatePlayingTitle(`${title}`);
-                    setMasterVolume(appVolume, isAppMuted);
+                    setMasterVolume(uiVolumeLevel, isAppMuted);
                     video.play().then(() => {
                         playBtn.textContent = '❚❚';
                         applyStartTime();
@@ -2309,7 +2358,7 @@
                 video.src = proxiedUrl;
                 video.addEventListener('loadedmetadata', function onMeta() {
                     updatePlayingTitle(`${title}`);
-                    setMasterVolume(appVolume, isAppMuted);
+                    setMasterVolume(uiVolumeLevel, isAppMuted);
                     applyStartTime();
                     video.removeEventListener('loadedmetadata', onMeta);
                 });
