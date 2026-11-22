@@ -23,7 +23,7 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background: #0f0f0f;
             color: #f1f1f1;
-            padding: 20px;
+            padding: calc(16px + env(safe-area-inset-top)) 20px calc(20px + env(safe-area-inset-bottom)) 20px;
             transition: max-width 0.25s ease, padding 0.25s ease;
         }
 
@@ -31,6 +31,7 @@
         body.lock-scroll {
             overflow: hidden !important;
             background: #000 !important;
+            padding: 0 !important;
         }
         body.lock-scroll > *:not(.main-layout) {
             display: none !important;
@@ -45,9 +46,9 @@
             display: none !important;
         }
 
-        /* 手機版樣式 */
+        /* 手機版樣式（加入頂部劉海與狀態列安全間距，避免按鈕與時間/訊號重疊） */
         body.mobile-mode {
-            padding: 10px;
+            padding: max(48px, calc(14px + env(safe-area-inset-top))) max(10px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
             max-width: 480px;
             margin: 0 auto;
             border-left: 1px solid #222;
@@ -58,6 +59,12 @@
             body.mobile-mode {
                 max-width: 100%;
                 border: none;
+            }
+        }
+        /* 手機橫放非全螢幕時減少頂部留白，保留安全區 */
+        @media screen and (orientation: landscape) {
+            body.mobile-mode {
+                padding-top: max(12px, env(safe-area-inset-top));
             }
         }
 
@@ -345,9 +352,6 @@
             width: 50%;
             transition: background-color 0.15s;
         }
-        .gesture-osd-fill.boost {
-            background: #ffaa00;
-        }
 
         /* 底部控制列 */
         .custom-controls {
@@ -417,7 +421,7 @@
         .volume-slider {
             -webkit-appearance: none;
             appearance: none;
-            width: 90px;
+            width: 85px;
             height: 5px;
             background: #555;
             border-radius: 3px;
@@ -711,7 +715,7 @@
                             <button class="ctrl-btn" id="play-btn">▶</button>
                             <div class="volume-box">
                                 <button class="ctrl-btn" id="mute-btn">🔊</button>
-                                <input type="range" class="volume-slider" id="volume-slider" min="0" max="2" step="0.01" value="1">
+                                <input type="range" class="volume-slider" id="volume-slider" min="0" max="1" step="0.01" value="1">
                                 <span class="volume-pct-label" id="volume-pct-label">100%</span>
                             </div>
                             <span class="time-display" id="time-display">00:00 / 00:00</span>
@@ -810,20 +814,11 @@
         let videoBrightness = 1.0;
 
         // ==========================================
-        // 方案 A：對數音量曲線 + 最高 200% 軟體增益引擎
-        // - uiVolumeLevel 範圍：0.0 ~ 2.0 (0% ~ 200%，預設 1.0 = 100%)
-        // - 0% ~ 100% 區間採用三次方對數曲線 (level^2.5)，滑一半(50%)即降至約 18% 聲壓，人耳體感極明顯
-        // - 100% ~ 200% 區間線性放大增益至 2.0 倍，解決片源太小聲問題
+        // 安全音量管理 (0% ~ 100%，不超過 100% 避免破音失真)
         // ==========================================
         let uiVolumeLevel = 1.0;
         let previousVolumeLevel = 1.0;
         let isAppMuted = false;
-
-        let audioCtx = null;
-        let gainNode = null;
-        let mediaSourceNode = null;
-        let webAudioReady = false;
-        let webAudioFailed = false;
 
         let currentVod = null;
         let currentEpName = '';
@@ -849,75 +844,18 @@
                    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         }
 
-        // 將 UI 顯示的音量倍率 (0.0 ~ 2.0) 轉換為符合人耳聽覺的對數實際增益值
-        function computePerceptualGain(level) {
-            if (level <= 0.005) return 0;
-            if (level <= 1.0) {
-                // 對數/指數感知曲線：50% 滑桿 -> ~0.18 增益 (-15dB)，體感明顯變小聲
-                return Math.pow(level, 2.5);
-            }
-            // 100% ~ 200% 軟體增益放大 (1.0 ~ 2.0 倍)
-            return level;
-        }
-
-        function ensureWebAudioConnected() {
-            if (webAudioFailed) return false;
-            if (webAudioReady) {
-                if (audioCtx && audioCtx.state === 'suspended') {
-                    audioCtx.resume().catch(() => {});
-                }
-                return true;
-            }
-            try {
-                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-                if (!AudioContextClass) {
-                    webAudioFailed = true;
-                    return false;
-                }
-                audioCtx = new AudioContextClass();
-                mediaSourceNode = audioCtx.createMediaElementSource(video);
-                gainNode = audioCtx.createGain();
-                const targetGain = isAppMuted ? 0 : computePerceptualGain(uiVolumeLevel);
-                gainNode.gain.value = targetGain;
-                mediaSourceNode.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
-                webAudioReady = true;
-                if (audioCtx.state === 'suspended') {
-                    audioCtx.resume().catch(() => {});
-                }
-                return true;
-            } catch (e) {
-                webAudioFailed = true;
-                console.warn('Web Audio 初始化受限，改用原生音量控制:', e.message);
-                return false;
-            }
-        }
-
         function setMasterVolume(level, muteState = null) {
-            uiVolumeLevel = Math.max(0, Math.min(2.0, level));
+            uiVolumeLevel = Math.max(0, Math.min(1.0, level));
             if (muteState !== null) {
                 isAppMuted = muteState;
             } else {
                 isAppMuted = (uiVolumeLevel <= 0.005);
             }
 
-            const perceptualGain = isAppMuted ? 0 : computePerceptualGain(uiVolumeLevel);
-            const hasWebAudio = ensureWebAudioConnected();
-
-            // 1. 套用至 Web Audio GainNode（支援 0% ~ 200% 對數調整與增益放大，iPhone 需搭配 CORS 代理）
-            if (hasWebAudio && gainNode && audioCtx) {
-                try {
-                    // 使用 setTargetAtTime 避免快速滑動產生爆音
-                    gainNode.gain.setTargetAtTime(perceptualGain, audioCtx.currentTime, 0.015);
-                } catch (e) {
-                    gainNode.gain.value = perceptualGain;
-                }
-            }
-
-            // 2. 同步套用至原生 video 元素（上限 1.0，確保未走 Web Audio 的環境也能正常調整 0~100%）
+            const effectiveVol = isAppMuted ? 0 : uiVolumeLevel;
             try {
                 video.muted = isAppMuted;
-                video.volume = Math.min(1.0, perceptualGain);
+                video.volume = effectiveVol;
             } catch (e) {}
 
             updateVolumeUI();
@@ -926,14 +864,6 @@
         function getEffectiveLevel() {
             return isAppMuted ? 0 : uiVolumeLevel;
         }
-
-        function unlockAudioContextOnGesture() {
-            if (audioCtx && audioCtx.state === 'suspended') {
-                audioCtx.resume().catch(() => {});
-            }
-        }
-        document.addEventListener('touchstart', unlockAudioContextOnGesture, { passive: true });
-        document.addEventListener('click', unlockAudioContextOnGesture, { passive: true });
 
         // ==========================================
         // 語音搜尋功能（支援手機版與電腦版一鍵語音輸入）
@@ -1050,7 +980,6 @@
         }
 
         function togglePlayPause() {
-            ensureWebAudioConnected();
             if (video.paused) {
                 video.play().then(() => { playBtn.textContent = '❚❚'; }).catch(() => {});
             } else {
@@ -1064,10 +993,8 @@
         });
 
         function applySliderColor(level) {
-            // slider 範圍為 0 ~ 2.0，換算成百分比 (0% ~ 100%)
-            const barPct = Math.round((level / 2.0) * 100);
-            const activeColor = level > 1.0 ? '#ffaa00' : '#e50914';
-            volumeSlider.style.background = `linear-gradient(to right, ${activeColor} 0%, ${activeColor} ${barPct}%, #555 ${barPct}%, #555 100%)`;
+            const barPct = Math.round(level * 100);
+            volumeSlider.style.background = `linear-gradient(to right, #e50914 0%, #e50914 ${barPct}%, #555 ${barPct}%, #555 100%)`;
         }
 
         function updateVolumeUI() {
@@ -1078,15 +1005,12 @@
             const displayPct = Math.round(currentLvl * 100);
             if (volumePctLabel) {
                 volumePctLabel.textContent = `${displayPct}%`;
-                volumePctLabel.style.color = currentLvl > 1.0 ? '#ffbb00' : '#bbb';
             }
 
             if (currentLvl === 0 || isAppMuted) {
                 muteBtn.textContent = '🔇';
             } else if (currentLvl < 0.5) {
                 muteBtn.textContent = '🔉';
-            } else if (currentLvl > 1.05) {
-                muteBtn.textContent = '📢';
             } else {
                 muteBtn.textContent = '🔊';
             }
@@ -1096,8 +1020,7 @@
             e.stopPropagation();
             let val = parseFloat(e.target.value);
             if (val <= 0.02) val = 0;
-            // 在 100% (1.0) 附近提供輕微磁吸手感，方便精準拉回原音
-            if (Math.abs(val - 1.0) < 0.04) val = 1.0;
+            if (val >= 0.98) val = 1.0;
             setMasterVolume(val, val === 0);
         });
 
@@ -1260,10 +1183,10 @@
         });
 
         // ==========================================
-        // 手機版全方位觸控手勢引擎
+        // 手機版全方位觸控手勢引擎（保持原設計不變）
         // - 雙擊左/右：倒退 10 秒 / 快轉 10 秒
         // - 左側上下滑動：調整亮度增加 / 減少
-        // - 右側上下滑動：對數音量調整 0% ~ 200%（記憶上次位置，超過 100% 進入金色增益放大區）
+        // - 右側上下滑動：調整音量增加 / 減少 (0% ~ 100%)
         // - 左右水平滑動：控制進度條增加 / 減少
         // ==========================================
         let touchStartX = 0;
@@ -1276,7 +1199,7 @@
         let lastTapTime = 0;
         let singleTapTimer = null;
 
-        function showGestureOsd(label, barPercent, subText = '', showBar = true, isBoost = false) {
+        function showGestureOsd(label, barPercent, subText = '', showBar = true) {
             gestureOsdText.textContent = label;
             if (subText) {
                 gestureOsdSub.textContent = subText;
@@ -1288,11 +1211,6 @@
             if (showBar) {
                 gestureOsdBar.style.display = 'block';
                 gestureOsdFill.style.width = `${Math.max(0, Math.min(100, barPercent))}%`;
-                if (isBoost) {
-                    gestureOsdFill.classList.add('boost');
-                } else {
-                    gestureOsdFill.classList.remove('boost');
-                }
             } else {
                 gestureOsdBar.style.display = 'none';
             }
@@ -1331,7 +1249,6 @@
                 return;
             }
 
-            ensureWebAudioConnected();
             const coords = getNormalizedTouchCoords(e.touches[0]);
             touchStartX = coords.x;
             touchStartY = coords.y;
@@ -1359,7 +1276,7 @@
                         initialGestureVal = videoBrightness;
                     } else {
                         touchGestureType = 'volume';
-                        initialGestureVal = getEffectiveLevel(); // 0.0 ~ 2.0
+                        initialGestureVal = getEffectiveLevel(); // 0.0 ~ 1.0
                     }
                 } else {
                     if (video.duration && !isNaN(video.duration)) {
@@ -1377,17 +1294,13 @@
                 const pct = Math.round(((videoBrightness - 0.2) / 1.1) * 100);
                 showGestureOsd(`☀️ 亮度 ${pct}%`, pct);
             } else if (touchGestureType === 'volume') {
-                // 滑滿畫面高度可調整 2.0 (即 0% ~ 200%)
-                const change = (-deltaY / coords.height) * 2.0;
-                const newLvl = Math.max(0, Math.min(2.0, initialGestureVal + change));
+                const change = (-deltaY / coords.height) * 1.0;
+                const newLvl = Math.max(0, Math.min(1.0, initialGestureVal + change));
                 setMasterVolume(newLvl, newLvl <= 0.005);
 
                 const displayPct = Math.round(newLvl * 100);
-                const barPct = (newLvl / 2.0) * 100;
-                const isBoost = displayPct > 100;
-                const icon = displayPct === 0 ? '🔇' : (isBoost ? '📢' : '🔊');
-                const subHint = isBoost ? '軟體增益放大中' : (displayPct < 50 ? '對數衰減模式' : '');
-                showGestureOsd(`${icon} 音量 ${displayPct}%`, barPct, subHint, true, isBoost);
+                const icon = displayPct === 0 ? '🔇' : '🔊';
+                showGestureOsd(`${icon} 音量 ${displayPct}%`, displayPct, '', true);
             } else if (touchGestureType === 'seek' && video.duration) {
                 const spanSeconds = Math.max(90, Math.min(300, video.duration * 0.35));
                 const seekDelta = (deltaX / coords.width) * spanSeconds;
@@ -1683,7 +1596,7 @@
                 showRipple(rippleRight);
             } else if (e.key === 'ArrowUp') {
                 e.preventDefault();
-                const next = Math.min(2.0, Math.round((getEffectiveLevel() + 0.1) * 10) / 10);
+                const next = Math.min(1.0, Math.round((getEffectiveLevel() + 0.1) * 10) / 10);
                 setMasterVolume(next, false);
                 resetControlsTimer();
             } else if (e.key === 'ArrowDown') {
@@ -2276,15 +2189,14 @@
         }
 
         // ==========================================
-        // 核心播放控制 (秒開配置 + 原地斷線救援 + 音量狀態維持)
+        // 核心播放控制 (秒開配置 + 原地斷線救援 + 省流量直連)
         // ==========================================
         function playStream(rawUrl, title, startTime = 0) {
             isTriggeringNext = false;
             updateOpEdUI();
             updatePlayingTitle(`準備載入：${title}`);
-            ensureWebAudioConnected();
 
-            const proxiedUrl = `/api/proxy-m3u8?url=${encodeURIComponent(rawUrl)}${isIOSDevice() ? '&cors_ts=1' : ''}`;
+            const proxiedUrl = `/api/proxy-m3u8?url=${encodeURIComponent(rawUrl)}`;
 
             const rule = getCurrentOpEd();
             let targetStart = 0;
