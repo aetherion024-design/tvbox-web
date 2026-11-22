@@ -1350,10 +1350,27 @@
                     updateVolumeUI();
                 });
 
+                // 播放中斷救援：修復卡住時會跳回 00:00 從頭重播的 Bug
                 hlsInstance.on(Hls.Events.ERROR, (event, data) => {
                     if (data.fatal) {
-                        // 遇到卡死或解碼失敗，直接回退嘗試原直鏈
-                        hlsInstance.loadSource(rawUrl);
+                        const errorCurrentTime = (video && video.currentTime > 1) ? video.currentTime : startTime;
+                        console.warn(`[播放中斷救援] 在 ${errorCurrentTime} 秒遇到錯誤:`, data.type);
+
+                        switch (data.type) {
+                            case Hls.ErrorTypes.NETWORK_ERROR:
+                                // 網路片段逾時，原地重新載入切片，不重頭播放
+                                hlsInstance.startLoad();
+                                break;
+                            case Hls.ErrorTypes.MEDIA_ERROR:
+                                // 解碼緩衝卡死，執行無損就地恢復
+                                hlsInstance.recoverMediaError();
+                                break;
+                            default:
+                                // 嚴重異常重載時，精準帶入剛剛卡住的時間點接續播放
+                                hlsInstance.destroy();
+                                playStream(rawUrl, title, errorCurrentTime);
+                                break;
+                        }
                     }
                 });
             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
