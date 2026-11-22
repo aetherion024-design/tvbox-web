@@ -1296,7 +1296,7 @@
         }
 
         // ==========================================
-        // 核心播放控制 (還原最穩定秒開的 HLS 配置 + 播放中斷記憶救援)
+        // 核心播放控制 (還原最穩定秒開配置 + 原地容錯不歸零)
         // ==========================================
         function playStream(rawUrl, title, startTime = 0) {
             isTriggeringNext = false;
@@ -1323,6 +1323,8 @@
                 hlsInstance = null;
             }
 
+            let hasFallenBackToRaw = false;
+
             const applyStartTime = () => {
                 if (targetStart > 0) {
                     video.currentTime = targetStart;
@@ -1333,7 +1335,7 @@
             };
 
             if (Hls.isSupported()) {
-                // 完全還原最穩定的標準配置（移除導致卡死不播的 6 秒超時和 startPosition）
+                // 還原最穩定預設配置（fragLoadingTimeOut: 20000），確保起播順暢秒開
                 hlsInstance = new Hls({
                     enableWorker: true,
                     lowLatencyMode: true,
@@ -1352,26 +1354,28 @@
                     updateVolumeUI();
                 });
 
-                // 播放中斷救援：修復中途卡住時會跳回 00:00 重播的問題
                 hlsInstance.on(Hls.Events.ERROR, (event, data) => {
                     if (data.fatal) {
-                        const errorCurrentTime = (video && video.currentTime > 1) ? video.currentTime : (targetStart > 0 ? targetStart : 0);
-                        console.warn(`[播放中斷救援] 在 ${errorCurrentTime} 秒遇到錯誤:`, data.type);
+                        // 情況 1：剛起播時代理失敗，秒切換直鏈播放（避免卡在載入中）
+                        if (!hasFallenBackToRaw && (!video.currentTime || video.currentTime < 2)) {
+                            hasFallenBackToRaw = true;
+                            console.log('代理載入失敗，切換直鏈播放');
+                            hlsInstance.loadSource(rawUrl);
+                            return;
+                        }
 
-                        switch (data.type) {
-                            case Hls.ErrorTypes.NETWORK_ERROR:
-                                // 網路片段逾時，原地重新載入切片，不重頭播放
-                                hlsInstance.startLoad();
-                                break;
-                            case Hls.ErrorTypes.MEDIA_ERROR:
-                                // 解碼緩衝卡死，執行無損就地恢復
-                                hlsInstance.recoverMediaError();
-                                break;
-                            default:
-                                // 嚴重異常重載時，精準帶入剛剛卡住的時間點接續播放，絕不回到 00:00
-                                hlsInstance.destroy();
-                                playStream(rawUrl, title, errorCurrentTime);
-                                break;
+                        // 情況 2：播到中途（如 07:01 或任何秒數）遇到網路波動
+                        const savedTime = (video && video.currentTime > 1) ? video.currentTime : targetStart;
+                        console.warn(`[播放中斷救援] 在 ${savedTime} 秒遇到錯誤:`, data.type);
+
+                        if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+                            hlsInstance.recoverMediaError();
+                        } else if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                            hlsInstance.startLoad();
+                        } else {
+                            // 嚴重異常時帶入剛才卡住的秒數重載，絕不跳回 00:00 從頭開始
+                            hlsInstance.destroy();
+                            playStream(rawUrl, title, savedTime);
                         }
                     }
                 });
