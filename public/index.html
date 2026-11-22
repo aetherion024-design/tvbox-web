@@ -395,10 +395,11 @@
         .progress-bar-wrap:hover .progress-bar-bg { height: 7px; }
         .progress-bar-fill { height: 100%; background: #e50914; border-radius: 3px; width: 0%; pointer-events: none; }
 
-        .controls-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-        .controls-left, .controls-right { display: flex; align-items: center; gap: 12px; }
-        body.mobile-mode .controls-left,
-        body.mobile-mode .controls-right { gap: 6px; }
+        .controls-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; width: 100%; min-width: 0; }
+        .controls-left { display: flex; align-items: center; gap: 10px; min-width: 0; flex-shrink: 1; }
+        .controls-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        body.mobile-mode .controls-left { gap: 4px; }
+        body.mobile-mode .controls-right { gap: 4px; }
 
         .ctrl-btn {
             background: none;
@@ -410,6 +411,16 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        #fs-btn {
+            background: rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(255, 255, 255, 0.28);
+            border-radius: 5px;
+            padding: 4px 8px;
+            font-weight: bold;
+            flex-shrink: 0;
         }
         .ctrl-btn:hover { color: #e50914; }
         body.mobile-mode .ctrl-btn { font-size: 15px; padding: 4px 5px; }
@@ -515,8 +526,9 @@
             cursor: pointer;
             transition: all 0.2s;
             white-space: nowrap;
+            flex-shrink: 0;
         }
-        body.mobile-mode .skip-btn { padding: 3px 6px; font-size: 10.5px; }
+        body.mobile-mode .skip-btn { padding: 3px 5px; font-size: 10px; }
         .skip-btn:hover { background: #333; color: #fff; }
         .skip-btn.active { background: #193322; border-color: #00cc66; color: #00ff88; font-weight: bold; }
 
@@ -2054,6 +2066,9 @@
             let rawWord = document.getElementById('search-input').value.trim();
             if (!rawWord) return alert('請輸入搜尋關鍵字');
 
+            // 手機版搜尋時自動收起虛擬鍵盤，避免鍵盤遮擋下方搜尋結果
+            document.getElementById('search-input').blur();
+
             if (converter) {
                 currentSearchWord = await converter(rawWord);
             } else {
@@ -2063,7 +2078,7 @@
             isShowingFavList = false;
             currentTypeId = '';
             currentPage = 1;
-            fetchVideos();
+            await fetchVideos(true);
         }
 
         function changePage(delta) {
@@ -2073,7 +2088,7 @@
             window.scrollTo({ top: isMobileMode ? 350 : 450, behavior: 'smooth' });
         }
 
-        async function fetchVideos() {
+        async function fetchVideos(scrollToResults = false) {
             const api = document.getElementById('site-select').value;
             if (!api) return;
 
@@ -2106,6 +2121,12 @@
                 if (list.length === 0) {
                     grid.innerHTML = `查無相關影片。`;
                     document.getElementById('pagination').style.display = 'none';
+                    if (scrollToResults) {
+                        setTimeout(() => {
+                            const targetEl = document.getElementById('category-row') || grid;
+                            targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }, 80);
+                    }
                     return;
                 }
 
@@ -2124,6 +2145,13 @@
 
                 document.getElementById('pagination').style.display = 'flex';
                 document.getElementById('page-indicator').textContent = `第 ${currentPage} 頁`;
+
+                if (scrollToResults) {
+                    setTimeout(() => {
+                        const targetEl = document.getElementById('category-row') || grid;
+                        targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 80);
+                }
 
             } catch (err) {
                 grid.innerHTML = `<span style="color:red">載入失敗: ${err.message}</span>`;
