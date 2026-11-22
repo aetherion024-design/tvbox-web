@@ -280,7 +280,7 @@
         <div class="player-box" id="player-box">
             <video id="video-player" autoplay playsinline crossorigin="anonymous"></video>
             
-            <div class="skip-toast" id="skip-toast">⚡ 識別到「澳门新葡京娱乐城」，已自動跳過 26 秒</div>
+            <div class="skip-toast" id="skip-toast">⚡ 識別到「澳門新葡京」，已自動跳過 26 秒</div>
 
             <div class="seek-ripple" id="ripple-left">⏪ 10 秒</div>
             <div class="seek-ripple" id="ripple-right">10 秒 ⏩</div>
@@ -631,7 +631,7 @@
             if (video.duration && target > video.duration) target = video.duration;
             video.currentTime = target;
 
-            skipToast.textContent = `⚡ 識別到「澳门新葡京娱乐城」，已自動跳過 26 秒`;
+            skipToast.textContent = `⚡ 識別到「澳門新葡京」，已自動跳過 26 秒`;
             skipToast.style.display = 'block';
             setTimeout(() => { skipToast.style.display = 'none'; }, 2500);
         }
@@ -1295,6 +1295,9 @@
             });
         }
 
+        // ==========================================
+        // 核心播放控制 (採用最穩定標準 HLS 載入通道)
+        // ==========================================
         function playStream(rawUrl, title, startTime = 0) {
             isTriggeringNext = false;
             updateOpEdUI();
@@ -1303,7 +1306,6 @@
 
             const proxiedUrl = `/api/proxy-m3u8?url=${encodeURIComponent(rawUrl)}`;
 
-            // 1. 預先計算起播時間點（歷史接續 或 全劇片頭）
             const rule = getCurrentOpEd();
             let targetStart = 0;
             let toastMsg = '';
@@ -1320,15 +1322,21 @@
                 hlsInstance = null;
             }
 
+            const applyTargetTime = () => {
+                if (targetStart > 0) {
+                    video.currentTime = targetStart;
+                    skipToast.textContent = toastMsg;
+                    skipToast.style.display = 'block';
+                    setTimeout(() => { skipToast.style.display = 'none'; }, 2500);
+                }
+            };
+
             if (Hls.isSupported()) {
-                // 關鍵優化：超時時間由預設 20 秒縮短為 6 秒，大幅減少切換停頓；並啟用 startPosition 直起
+                // 恢復標準穩定逾時（20000ms），不強行使用 startPosition 避免片源不支援導致死鎖
                 hlsInstance = new Hls({
                     enableWorker: true,
                     lowLatencyMode: true,
-                    fragLoadingTimeOut: 6000,
-                    manifestLoadingTimeOut: 6000,
-                    levelLoadingTimeOut: 6000,
-                    startPosition: targetStart > 0 ? targetStart : -1
+                    fragLoadingTimeOut: 20000
                 });
                 
                 hlsInstance.loadSource(proxiedUrl);
@@ -1338,14 +1346,7 @@
                     titleEl.textContent = `正在播放：${title}`;
                     video.play().then(() => {
                         playBtn.textContent = '❚❚';
-                        if (targetStart > 0) {
-                            if (Math.abs(video.currentTime - targetStart) > 2) {
-                                video.currentTime = targetStart;
-                            }
-                            skipToast.textContent = toastMsg;
-                            skipToast.style.display = 'block';
-                            setTimeout(() => { skipToast.style.display = 'none'; }, 2500);
-                        }
+                        applyTargetTime();
                     }).catch(e => console.log('等待點擊播放', e));
                     updateVolumeUI();
                 });
@@ -1353,7 +1354,7 @@
                 // 播放中斷救援：修復卡住時會跳回 00:00 從頭重播的 Bug
                 hlsInstance.on(Hls.Events.ERROR, (event, data) => {
                     if (data.fatal) {
-                        const errorCurrentTime = (video && video.currentTime > 1) ? video.currentTime : startTime;
+                        const errorCurrentTime = (video && video.currentTime > 1) ? video.currentTime : (targetStart > 0 ? targetStart : 0);
                         console.warn(`[播放中斷救援] 在 ${errorCurrentTime} 秒遇到錯誤:`, data.type);
 
                         switch (data.type) {
@@ -1366,7 +1367,7 @@
                                 hlsInstance.recoverMediaError();
                                 break;
                             default:
-                                // 嚴重異常重載時，精準帶入剛剛卡住的時間點接續播放
+                                // 嚴重異常重載時，精準帶入剛剛卡住的時間點接續播放，絕不回到 00:00
                                 hlsInstance.destroy();
                                 playStream(rawUrl, title, errorCurrentTime);
                                 break;
@@ -1375,15 +1376,10 @@
                 });
             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                 video.src = proxiedUrl;
-                if (targetStart > 0) {
-                    video.addEventListener('loadedmetadata', function onMeta() {
-                        video.currentTime = targetStart;
-                        skipToast.textContent = toastMsg;
-                        skipToast.style.display = 'block';
-                        setTimeout(() => { skipToast.style.display = 'none'; }, 2500);
-                        video.removeEventListener('loadedmetadata', onMeta);
-                    });
-                }
+                video.addEventListener('loadedmetadata', function onMeta() {
+                    applyTargetTime();
+                    video.removeEventListener('loadedmetadata', onMeta);
+                });
                 video.play();
                 updateVolumeUI();
             }
