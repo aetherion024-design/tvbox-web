@@ -27,6 +27,25 @@
             transition: max-width 0.25s ease, padding 0.25s ease;
         }
 
+        /* 頂部狀態列固定安全區遮罩（防止網頁捲動時文字與 iPhone 時間/劉海重疊） */
+        .ios-status-bar-guard {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: env(safe-area-inset-top);
+            background: #0f0f0f;
+            z-index: 9000;
+            pointer-events: none;
+        }
+        body.mobile-mode .ios-status-bar-guard {
+            display: block;
+        }
+        body.lock-scroll .ios-status-bar-guard {
+            display: none !important;
+        }
+
         /* 全螢幕時徹底鎖死背景頁面，避免拖動或露白 */
         body.lock-scroll {
             overflow: hidden !important;
@@ -127,10 +146,39 @@
         body.mobile-mode .header-row-selects select { flex: 1; min-width: 90px; }
 
         .search-box { display: flex; gap: 6px; margin-left: auto; align-items: center; }
-        .search-box input { width: 200px; background: #121212; border: 1px solid #3a3a3a; }
+        .search-input-wrap {
+            position: relative;
+            display: flex;
+            align-items: center;
+            width: 210px;
+        }
+        .search-input-wrap input {
+            width: 100%;
+            background: #121212;
+            border: 1px solid #3a3a3a;
+            padding-right: 30px;
+        }
+        .btn-clear-search {
+            position: absolute;
+            right: 6px;
+            background: rgba(255, 255, 255, 0.14);
+            border: none;
+            color: #ccc;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            font-size: 11px;
+            padding: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .btn-clear-search:hover { background: #e50914; color: #fff; }
+        .btn-clear-search.visible { display: flex; }
         body.mobile-mode .search-box { width: 100%; margin-left: 0; margin-top: 2px; gap: 6px; }
-        body.mobile-mode .search-box input { flex: 1; width: auto; min-width: 0; }
-        body.mobile-mode .search-box button { flex-shrink: 0; padding: 8px 12px; }
+        body.mobile-mode .search-input-wrap { flex: 1; width: auto; min-width: 0; }
+        body.mobile-mode .search-box > button { flex-shrink: 0; padding: 8px 12px; }
 
         /* 語音搜尋按鈕 */
         .btn-voice {
@@ -353,27 +401,43 @@
             transition: background-color 0.15s;
         }
 
-        /* 底部控制列 */
+        /* 底部控制列：一般模式獨立接在影片下方（100%不遮擋畫面與字幕），全螢幕模式浮動於底部並自動淡出 */
         .custom-controls {
-            position: absolute;
-            bottom: 0;
-            left: 0;
+            position: relative;
             width: 100%;
-            background: linear-gradient(transparent, rgba(0,0,0,0.95));
+            background: #141414;
+            border-top: 1px solid #242424;
             display: flex;
             flex-direction: column;
-            padding: 8px max(16px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
-            gap: 6px;
-            opacity: 0;
-            pointer-events: none;
+            padding: 6px 14px 10px;
+            gap: 4px;
+            opacity: 1;
+            pointer-events: auto;
             transition: opacity 0.25s ease-in-out;
             z-index: 1200;
         }
         body.mobile-mode .custom-controls {
-            padding: 6px max(16px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
-            gap: 4px;
+            padding: 5px 10px 8px;
+            gap: 3px;
         }
-        .custom-controls.show { opacity: 1; pointer-events: auto; }
+        .player-box:fullscreen .custom-controls,
+        .player-box:-webkit-full-screen .custom-controls,
+        .player-box.pseudo-fullscreen .custom-controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            border-top: none;
+            background: linear-gradient(transparent, rgba(0,0,0,0.95));
+            padding: 8px max(16px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+            opacity: 0;
+            pointer-events: none;
+        }
+        .player-box:fullscreen .custom-controls.show,
+        .player-box:-webkit-full-screen .custom-controls.show,
+        .player-box.pseudo-fullscreen .custom-controls.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
 
         .progress-bar-wrap {
             width: 100%;
@@ -669,6 +733,7 @@
     </style>
 </head>
 <body>
+    <div class="ios-status-bar-guard"></div>
 
     <div class="header">
         <input type="file" id="local-file-input" accept=".txt,.json" style="display:none;" onchange="handleFileUpload(event)">
@@ -687,7 +752,10 @@
         </div>
 
         <div class="search-box">
-            <input type="text" id="search-input" placeholder="繁簡皆可或點擊語音..." onkeydown="if(event.key==='Enter') doSearch()">
+            <div class="search-input-wrap">
+                <input type="text" id="search-input" placeholder="繁簡皆可或點擊語音..." oninput="toggleClearSearchBtn()" onkeydown="if(event.key==='Enter') doSearch()">
+                <button type="button" class="btn-clear-search" id="clear-search-btn" title="清除搜尋內容" onclick="clearSearchInput()">✕</button>
+            </div>
             <button class="btn-voice" id="voice-search-btn" title="語音輸入搜尋" onclick="startVoiceSearch()">🎤</button>
             <button onclick="doSearch()">搜尋</button>
         </div>
@@ -734,8 +802,8 @@
                         </div>
                         <div class="controls-right">
                             <div class="op-ed-wrap" id="op-ed-wrap" style="display: none;">
-                                <button class="skip-btn" id="btn-set-op" onclick="event.stopPropagation(); toggleSetOp()">⏭ 記住片頭</button>
-                                <button class="skip-btn" id="btn-set-ed" onclick="event.stopPropagation(); toggleSetEd()">⏮ 記住片尾</button>
+                                <button class="skip-btn" id="btn-set-op" onclick="event.stopPropagation(); toggleSetOp()">⏭ 片頭</button>
+                                <button class="skip-btn" id="btn-set-ed" onclick="event.stopPropagation(); toggleSetEd()">⏮ 片尾</button>
                             </div>
                             <button class="ctrl-btn" id="fs-btn">⛶ 全螢幕</button>
                         </div>
@@ -913,6 +981,7 @@
                     const cleaned = transcript.replace(/[。，！？、.!?,]/g, '').trim();
                     if (cleaned) {
                         document.getElementById('search-input').value = cleaned;
+                        toggleClearSearchBtn();
                         doSearch();
                     }
                 };
@@ -1367,11 +1436,15 @@
                 lastTapTime = now;
                 singleTapTimer = setTimeout(() => {
                     lastTapTime = 0;
-                    if (customControls.classList.contains('show')) {
-                        customControls.classList.remove('show');
-                        if (videoTopBar) videoTopBar.classList.remove('show');
+                    if (isFullscreenActive()) {
+                        if (customControls.classList.contains('show')) {
+                            customControls.classList.remove('show');
+                            if (videoTopBar) videoTopBar.classList.remove('show');
+                        } else {
+                            resetControlsTimer();
+                        }
                     } else {
-                        resetControlsTimer();
+                        togglePlayPause();
                     }
                 }, 280);
             }
@@ -2059,7 +2132,33 @@
             }
 
             document.getElementById('search-input').value = '';
+            toggleClearSearchBtn();
             fetchVideos();
+        }
+
+        function toggleClearSearchBtn() {
+            const input = document.getElementById('search-input');
+            const btn = document.getElementById('clear-search-btn');
+            if (input && btn) {
+                if (input.value.trim().length > 0) {
+                    btn.classList.add('visible');
+                } else {
+                    btn.classList.remove('visible');
+                }
+            }
+        }
+
+        function clearSearchInput() {
+            const input = document.getElementById('search-input');
+            if (!input) return;
+            input.value = '';
+            toggleClearSearchBtn();
+            input.focus();
+            if (currentSearchWord) {
+                currentSearchWord = '';
+                currentPage = 1;
+                fetchVideos(false);
+            }
         }
 
         async function doSearch() {
@@ -2158,7 +2257,16 @@
             }
         }
 
+        function scrollToPlayerBox() {
+            if (isFullscreenActive()) return;
+            const target = document.getElementById('player-box');
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
         function renderEpisodes(vod, targetEpName = '', startTime = 0) {
+            scrollToPlayerBox();
             currentVod = vod;
             updateFavBtnUI();
             updateOpEdUI();
@@ -2337,18 +2445,18 @@
 
             const rule = getCurrentOpEd();
             if (rule && rule.op > 0) {
-                btnOp.textContent = `⏭ 片頭 ${formatTime(rule.op)} (取消)`;
+                btnOp.textContent = `⏭ ${formatTime(rule.op)}`;
                 btnOp.classList.add('active');
             } else {
-                btnOp.textContent = `⏭ 記住片頭`;
+                btnOp.textContent = `⏭ 片頭`;
                 btnOp.classList.remove('active');
             }
 
             if (rule && rule.edTail > 0) {
-                btnEd.textContent = `⏮ 片尾 倒數${formatTime(rule.edTail)} (取消)`;
+                btnEd.textContent = `⏮ -${formatTime(rule.edTail)}`;
                 btnEd.classList.add('active');
             } else {
-                btnEd.textContent = `⏮ 記住片尾`;
+                btnEd.textContent = `⏮ 片尾`;
                 btnEd.classList.remove('active');
             }
         }
