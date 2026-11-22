@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <!-- 支援 iPhone / Android 加入主畫面時徹底隱藏網址列，達成 100% 無邊框真全螢幕 -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-capable" content="yes">
@@ -120,11 +119,37 @@
         body.mobile-mode .header-row-selects { width: 100%; gap: 6px; }
         body.mobile-mode .header-row-selects select { flex: 1; min-width: 90px; }
 
-        .search-box { display: flex; gap: 8px; margin-left: auto; }
-        .search-box input { width: 220px; background: #121212; border: 1px solid #3a3a3a; }
+        .search-box { display: flex; gap: 6px; margin-left: auto; align-items: center; }
+        .search-box input { width: 200px; background: #121212; border: 1px solid #3a3a3a; }
         body.mobile-mode .search-box { width: 100%; margin-left: 0; margin-top: 2px; gap: 6px; }
-        body.mobile-mode .search-box input { flex: 1; width: auto; }
-        body.mobile-mode .search-box button { flex-shrink: 0; padding: 8px 16px; }
+        body.mobile-mode .search-box input { flex: 1; width: auto; min-width: 0; }
+        body.mobile-mode .search-box button { flex-shrink: 0; padding: 8px 12px; }
+
+        /* 語音搜尋按鈕 */
+        .btn-voice {
+            background: #262626;
+            border: 1px solid #4a4a4a;
+            color: #fff;
+            padding: 8px 11px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+        .btn-voice:hover { background: #363636; border-color: #666; }
+        .btn-voice.listening {
+            background: #b91c1c;
+            border-color: #ef4444;
+            color: #fff;
+            animation: voicePulse 1.1s infinite;
+        }
+        @keyframes voicePulse {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
 
         .ad-switch-box {
             display: flex;
@@ -173,7 +198,7 @@
             background: #000 !important;
         }
 
-        /* iPhone (Safari & Chrome) 滿版全螢幕（自動適應直立/橫向，鋪滿可視區域） */
+        /* iPhone (Safari & Chrome) 滿版全螢幕 */
         .player-box.pseudo-fullscreen {
             position: fixed !important;
             inset: 0 !important;
@@ -188,7 +213,7 @@
             padding: 0 !important;
         }
 
-        /* 當手機為直立握持且點擊全螢幕時，自動旋轉 90 度鋪滿全螢幕 */
+        /* 直立握持全螢幕時自動順時針旋轉 90 度 */
         @media screen and (orientation: portrait) {
             .player-box.pseudo-fullscreen.auto-rotate-landscape {
                 inset: auto !important;
@@ -205,7 +230,7 @@
         .player-box.hide-cursor { cursor: none !important; }
         .player-box.hide-cursor * { cursor: none !important; }
 
-        /* 全螢幕左上角片名與集數頂部浮動欄（含 iPhone 劉海安全區保護） */
+        /* 全螢幕左上角片名與集數頂部浮動欄 */
         .video-top-bar {
             position: absolute;
             top: 0;
@@ -265,7 +290,6 @@
             height: auto;
             max-height: 70vh;
         }
-        /* 全螢幕時影片本體撐滿容器，消除多餘上下黑邊 */
         .player-box:fullscreen video,
         .player-box:-webkit-full-screen video,
         .player-box.pseudo-fullscreen video {
@@ -276,13 +300,13 @@
             object-fit: contain !important;
         }
 
-        /* 手機端手勢即時 OSD（亮度 / 音量 / 水平滑動進度） */
+        /* 手機端手勢即時 OSD */
         .gesture-osd {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.82);
+            background: rgba(0, 0, 0, 0.84);
             border: 1px solid rgba(255, 255, 255, 0.28);
             color: #fff;
             padding: 14px 24px;
@@ -298,7 +322,7 @@
             flex-direction: column;
             align-items: center;
             gap: 8px;
-            min-width: 160px;
+            min-width: 165px;
             text-align: center;
         }
         .gesture-osd.show { opacity: 1; }
@@ -320,7 +344,7 @@
             width: 50%;
         }
 
-        /* 底部控制列（含安全區內距） */
+        /* 底部控制列 */
         .custom-controls {
             position: absolute;
             bottom: 0;
@@ -640,7 +664,8 @@
         </div>
 
         <div class="search-box">
-            <input type="text" id="search-input" placeholder="繁簡皆可搜尋..." onkeydown="if(event.key==='Enter') doSearch()">
+            <input type="text" id="search-input" placeholder="繁簡皆可或點擊語音..." onkeydown="if(event.key==='Enter') doSearch()">
+            <button class="btn-voice" id="voice-search-btn" title="語音輸入搜尋" onclick="startVoiceSearch()">🎤</button>
             <button onclick="doSearch()">搜尋</button>
         </div>
     </div>
@@ -648,7 +673,6 @@
     <div class="main-layout">
         <div class="player-column">
             <div class="player-box" id="player-box">
-                <!-- 全螢幕模式左上角片名與集數頂部浮動欄 -->
                 <div class="video-top-bar" id="video-top-bar">
                     <span class="video-top-bar-title" id="fs-playing-title">目前尚未播放影片</span>
                     <button class="btn-exit-fs-top" onclick="event.stopPropagation(); toggleFullscreen()">✕ 退出全螢幕</button>
@@ -661,7 +685,6 @@
                 <div class="seek-ripple" id="ripple-left">⏪ 10 秒</div>
                 <div class="seek-ripple" id="ripple-right">10 秒 ⏩</div>
 
-                <!-- 手機端滑動調節亮度 / 音量 / 水平進度 OSD -->
                 <div class="gesture-osd" id="gesture-osd">
                     <div id="gesture-osd-text">☀️ 亮度 100%</div>
                     <div class="gesture-osd-sub" id="gesture-osd-sub" style="display:none;">+00:00</div>
@@ -755,6 +778,7 @@
         const favToggleBtn = document.getElementById('fav-toggle-btn');
         const favCountSpan = document.getElementById('fav-count');
         const modeSwitchBtn = document.getElementById('mode-switch-btn');
+        const voiceSearchBtn = document.getElementById('voice-search-btn');
 
         const gestureOsd = document.getElementById('gesture-osd');
         const gestureOsdText = document.getElementById('gesture-osd-text');
@@ -774,8 +798,18 @@
         let currentSearchWord = '';
         let lastSkipTime = 0;
         let controlsHideTimer = null;
-        let previousVolume = 1;
         let videoBrightness = 1.0;
+
+        // 獨立軟體音量狀態（解決 iPhone 鎖死 video.volume 導致無法調整且每次從 100% 扣的問題）
+        let appVolume = 1.0;
+        let previousVolume = 1.0;
+        let isAppMuted = false;
+
+        // Web Audio API 軟體增益節點（讓 iPhone 也能真實調整大小聲）
+        let audioCtx = null;
+        let gainNode = null;
+        let mediaSourceNode = null;
+        let webAudioReady = false;
 
         let currentVod = null;
         let currentEpName = '';
@@ -795,11 +829,144 @@
             converter = OpenCC.Converter({ from: 'tw', to: 'cn' });
         }
 
-        // 精準識別所有 iOS 裝置與瀏覽器（包含 iPhone Safari、iPhone Chrome CriOS、Edge EdgiOS）
         function isIOSDevice() {
             const ua = navigator.userAgent || '';
             return /iPad|iPhone|iPod|CriOS|FxiOS|EdgiOS/.test(ua) ||
                    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        }
+
+        // ==========================================
+        // 跨平台真實音量控制引擎（Web Audio GainNode + 原生雙軌備援）
+        // ==========================================
+        function ensureWebAudioConnected() {
+            if (webAudioReady) {
+                if (audioCtx && audioCtx.state === 'suspended') {
+                    audioCtx.resume().catch(() => {});
+                }
+                return true;
+            }
+            try {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContextClass) return false;
+                audioCtx = new AudioContextClass();
+                mediaSourceNode = audioCtx.createMediaElementSource(video);
+                gainNode = audioCtx.createGain();
+                gainNode.gain.value = isAppMuted ? 0 : appVolume;
+                mediaSourceNode.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                webAudioReady = true;
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume().catch(() => {});
+                }
+                return true;
+            } catch (e) {
+                // 若受 CORS 網域策略限制無法接入 Web Audio，自動退回原生控制
+                console.warn('Web Audio 轉接自動切換為原生控制模式:', e.message);
+                return false;
+            }
+        }
+
+        function setMasterVolume(val, muteState = null) {
+            appVolume = Math.max(0, Math.min(1, val));
+            if (muteState !== null) {
+                isAppMuted = muteState;
+            } else {
+                isAppMuted = (appVolume === 0);
+            }
+
+            const effectiveVol = isAppMuted ? 0 : appVolume;
+
+            // 1. 套用至 Web Audio GainNode（在 iPhone / iPad 上可真實改變大小聲）
+            if (ensureWebAudioConnected() && gainNode && audioCtx) {
+                try {
+                    gainNode.gain.setValueAtTime(effectiveVol, audioCtx.currentTime);
+                } catch (e) {
+                    gainNode.gain.value = effectiveVol;
+                }
+            }
+
+            // 2. 同步套用至原生 video 元素（Android / 桌面瀏覽器生效，iOS 支援 muted 靜音）
+            try {
+                video.muted = isAppMuted;
+                video.volume = effectiveVol;
+            } catch (e) {}
+
+            updateVolumeUI();
+        }
+
+        function getEffectiveVolume() {
+            return isAppMuted ? 0 : appVolume;
+        }
+
+        // 任何使用者首次點擊或觸碰畫面時，預先解鎖 iOS AudioContext
+        function unlockAudioContextOnGesture() {
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume().catch(() => {});
+            }
+        }
+        document.addEventListener('touchstart', unlockAudioContextOnGesture, { passive: true });
+        document.addEventListener('click', unlockAudioContextOnGesture, { passive: true });
+
+        // ==========================================
+        // 語音搜尋功能（支援手機版與電腦版一鍵語音輸入）
+        // ==========================================
+        let speechRecognition = null;
+        let isVoiceListening = false;
+
+        function startVoiceSearch() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                alert('您目前的瀏覽器不支援網頁語音辨識，建議使用手機鍵盤上的麥克風圖示進行語音輸入。');
+                return;
+            }
+
+            if (isVoiceListening && speechRecognition) {
+                speechRecognition.stop();
+                return;
+            }
+
+            try {
+                speechRecognition = new SpeechRecognition();
+                speechRecognition.lang = 'zh-TW';
+                speechRecognition.interimResults = false;
+                speechRecognition.maxAlternatives = 1;
+
+                speechRecognition.onstart = () => {
+                    isVoiceListening = true;
+                    voiceSearchBtn.classList.add('listening');
+                    voiceSearchBtn.textContent = '⏹';
+                    document.getElementById('search-input').placeholder = '請說出想看的片名...';
+                };
+
+                speechRecognition.onresult = (event) => {
+                    const transcript = event.results[0][0].transcript || '';
+                    const cleaned = transcript.replace(/[。，！？、.!?,]/g, '').trim();
+                    if (cleaned) {
+                        document.getElementById('search-input').value = cleaned;
+                        doSearch();
+                    }
+                };
+
+                speechRecognition.onerror = (event) => {
+                    console.warn('語音辨識錯誤:', event.error);
+                    if (event.error === 'not-allowed') {
+                        alert('請允許瀏覽器使用麥克風權限，才能使用語音搜尋。');
+                    }
+                };
+
+                speechRecognition.onend = () => {
+                    isVoiceListening = false;
+                    voiceSearchBtn.classList.remove('listening');
+                    voiceSearchBtn.textContent = '🎤';
+                    document.getElementById('search-input').placeholder = '繁簡皆可或點擊語音...';
+                };
+
+                speechRecognition.start();
+            } catch (err) {
+                isVoiceListening = false;
+                voiceSearchBtn.classList.remove('listening');
+                voiceSearchBtn.textContent = '🎤';
+            }
         }
 
         // ==========================================
@@ -855,6 +1022,7 @@
         }
 
         function togglePlayPause() {
+            ensureWebAudioConnected();
             if (video.paused) {
                 video.play().then(() => { playBtn.textContent = '❚❚'; }).catch(() => {});
             } else {
@@ -873,11 +1041,11 @@
         }
 
         function updateVolumeUI() {
-            const currentVol = (video.muted) ? 0 : video.volume;
+            const currentVol = getEffectiveVolume();
             volumeSlider.value = currentVol;
             applySliderColor(currentVol);
 
-            if (currentVol === 0 || video.muted) {
+            if (currentVol === 0 || isAppMuted) {
                 muteBtn.textContent = '🔇';
             } else if (currentVol < 0.5) {
                 muteBtn.textContent = '🔉';
@@ -891,29 +1059,24 @@
             let val = parseFloat(e.target.value);
             if (val <= 0.02) val = 0;
             if (val >= 0.98) val = 1;
-
-            video.volume = val;
-            video.muted = (val === 0);
-            updateVolumeUI();
+            setMasterVolume(val, val === 0);
         });
 
         muteBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (video.muted || video.volume === 0) {
-                video.muted = false;
-                video.volume = (previousVolume > 0.05) ? previousVolume : 1;
+            if (isAppMuted || appVolume === 0) {
+                const restore = (previousVolume > 0.05) ? previousVolume : 1.0;
+                setMasterVolume(restore, false);
             } else {
-                previousVolume = video.volume;
-                video.muted = true;
-                video.volume = 0;
+                previousVolume = appVolume;
+                setMasterVolume(appVolume, true);
             }
-            updateVolumeUI();
         });
 
         applySliderColor(1);
 
         // ==========================================
-        // 全螢幕系統 (完整支援 Android 原生橫屏全螢幕 + iPhone Chrome/Safari 滿版全螢幕)
+        // 全螢幕系統
         // ==========================================
         function isFullscreenActive() {
             return !!(document.fullscreenElement || document.webkitFullscreenElement || isPseudoFullscreen);
@@ -955,7 +1118,6 @@
                 playerBox.classList.add('auto-rotate-landscape');
             }
             fsBtn.textContent = '🗗 縮小';
-            // 觸發瀏覽器收合頂部網址列工具欄
             setTimeout(() => { window.scrollTo(0, 1); }, 60);
             resetControlsTimer();
         }
@@ -981,7 +1143,6 @@
             fsBtn.textContent = '⛶ 全螢幕';
         }
 
-        // 當使用者在全螢幕期間將手機從直拿轉為橫拿（或橫拿轉直拿），自動重置捲動以維持滿版
         window.addEventListener('resize', () => {
             if (isPseudoFullscreen) {
                 setTimeout(() => { window.scrollTo(0, 1); }, 80);
@@ -1013,13 +1174,11 @@
                 return;
             }
 
-            // iPhone / iPad (含 Safari、Chrome CriOS 等) 使用滿版擬真全螢幕，確保所有手勢、亮度與左上角片名完整顯示
             if (isIOSDevice() || (!playerBox.requestFullscreen && !playerBox.webkitRequestFullscreen)) {
                 enterPseudoFullscreen(isMobileMode);
                 return;
             }
 
-            // Android / 桌面瀏覽器呼叫原生全螢幕並自動橫向鎖定
             try {
                 if (playerBox.requestFullscreen) {
                     await playerBox.requestFullscreen();
@@ -1062,11 +1221,11 @@
         });
 
         // ==========================================
-        // 手機版全方位觸控手勢引擎（直式/橫式/全螢幕 100% 適用）
+        // 手機版全方位觸控手勢引擎
         // - 雙擊左/右：倒退 10 秒 / 快轉 10 秒
         // - 左側上下滑動：調整亮度增加 / 減少
-        // - 右側上下滑動：調整音量增加 / 減少
-        // - 左右水平滑動：按住往右滑增加進度、往左滑減少進度
+        // - 右側上下滑動：調整音量增加 / 減少（記憶上次位置，不跳回 100%）
+        // - 左右水平滑動：控制進度條增加 / 減少
         // ==========================================
         let touchStartX = 0;
         let touchStartY = 0;
@@ -1101,7 +1260,6 @@
             }, 950);
         }
 
-        // 取得標準化後的觸控座標（若處於直向旋轉 90 度全螢幕，自動轉換為視覺上的左右/上下座標）
         function getNormalizedTouchCoords(touch) {
             const rect = playerBox.getBoundingClientRect();
             const rawX = touch.clientX - rect.left;
@@ -1129,6 +1287,7 @@
                 return;
             }
 
+            ensureWebAudioConnected();
             const coords = getNormalizedTouchCoords(e.touches[0]);
             touchStartX = coords.x;
             touchStartY = coords.y;
@@ -1156,7 +1315,8 @@
                         initialGestureVal = videoBrightness;
                     } else {
                         touchGestureType = 'volume';
-                        initialGestureVal = video.muted ? 0 : video.volume;
+                        // 直接讀取記憶體中的真實軟體音量，絕不讀被 iOS 鎖死的 video.volume
+                        initialGestureVal = getEffectiveVolume();
                     }
                 } else {
                     if (video.duration && !isNaN(video.duration)) {
@@ -1176,11 +1336,9 @@
             } else if (touchGestureType === 'volume') {
                 const change = (-deltaY / coords.height) * 1.1;
                 const newVol = Math.max(0, Math.min(1, initialGestureVal + change));
-                video.volume = newVol;
-                video.muted = (newVol === 0);
-                updateVolumeUI();
+                setMasterVolume(newVol, newVol === 0);
                 const pct = Math.round(newVol * 100);
-                showGestureOsd(`${newVol === 0 ? '🔇' : '🔊'} 音量 ${pct}%`, pct);
+                showGestureOsd(`${pct === 0 ? '🔇' : '🔊'} 音量 ${pct}%`, pct);
             } else if (touchGestureType === 'seek' && video.duration) {
                 const spanSeconds = Math.max(90, Math.min(300, video.duration * 0.35));
                 const seekDelta = (deltaX / coords.width) * spanSeconds;
@@ -1476,14 +1634,13 @@
                 showRipple(rippleRight);
             } else if (e.key === 'ArrowUp') {
                 e.preventDefault();
-                video.volume = Math.min(1, Math.round((video.volume + 0.1) * 10) / 10);
-                video.muted = false;
-                updateVolumeUI();
+                const next = Math.min(1, Math.round((getEffectiveVolume() + 0.1) * 10) / 10);
+                setMasterVolume(next, false);
                 resetControlsTimer();
             } else if (e.key === 'ArrowDown') {
                 e.preventDefault();
-                video.volume = Math.max(0, Math.round((video.volume - 0.1) * 10) / 10);
-                updateVolumeUI();
+                const next = Math.max(0, Math.round((getEffectiveVolume() - 0.1) * 10) / 10);
+                setMasterVolume(next, next === 0);
                 resetControlsTimer();
             } else if (e.key.toLowerCase() === 'm') {
                 e.preventDefault();
@@ -2070,12 +2227,13 @@
         }
 
         // ==========================================
-        // 核心播放控制 (秒開配置 + 原地斷線救援)
+        // 核心播放控制 (秒開配置 + 原地斷線救援 + 音量狀態維持)
         // ==========================================
         function playStream(rawUrl, title, startTime = 0) {
             isTriggeringNext = false;
             updateOpEdUI();
             updatePlayingTitle(`準備載入：${title}`);
+            ensureWebAudioConnected();
 
             const proxiedUrl = `/api/proxy-m3u8?url=${encodeURIComponent(rawUrl)}`;
 
@@ -2118,11 +2276,11 @@
 
                 hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
                     updatePlayingTitle(`${title}`);
+                    setMasterVolume(appVolume, isAppMuted);
                     video.play().then(() => {
                         playBtn.textContent = '❚❚';
                         applyStartTime();
                     }).catch(e => console.log('等待點擊播放', e));
-                    updateVolumeUI();
                 });
 
                 hlsInstance.on(Hls.Events.ERROR, (event, data) => {
@@ -2151,11 +2309,11 @@
                 video.src = proxiedUrl;
                 video.addEventListener('loadedmetadata', function onMeta() {
                     updatePlayingTitle(`${title}`);
+                    setMasterVolume(appVolume, isAppMuted);
                     applyStartTime();
                     video.removeEventListener('loadedmetadata', onMeta);
                 });
                 video.play();
-                updateVolumeUI();
             }
         }
 
