@@ -34,7 +34,7 @@
         .player-box.hide-cursor { cursor: none !important; }
         .player-box.hide-cursor * { cursor: none !important; }
         
-        /* 方案 B：全螢幕模式下的頂部浮動標題（跟隨滑鼠自動淡出） */
+        /* 方案 B：全螢幕模式下的頂部浮動標題 */
         .video-top-bar {
             position: absolute;
             top: 0;
@@ -294,7 +294,7 @@
 
         <div class="ad-switch-box">
             <input type="checkbox" id="ai-ad-skip-chk" checked>
-            <label for="ai-ad-skip-chk">⚡ 文字精準識別：新葡京(+26s) / 暴富廣告(+20s)</label>
+            <label for="ai-ad-skip-chk">⚡ 文字精準識別：澳門新葡京娛樂城 (+26s)</label>
         </div>
 
         <div class="search-box">
@@ -313,7 +313,7 @@
 
                 <video id="video-player" autoplay playsinline crossorigin="anonymous"></video>
                 
-                <div class="skip-toast" id="skip-toast">⚡ 識別到廣告，已自動跳過</div>
+                <div class="skip-toast" id="skip-toast">⚡ 識別到「澳門新葡京」，已自動跳過 26 秒</div>
 
                 <div class="seek-ripple" id="ripple-left">⏪ 10 秒</div>
                 <div class="seek-ripple" id="ripple-right">10 秒 ⏩</div>
@@ -373,7 +373,6 @@
         </div>
     </div>
 
-    <!-- 保持原版完全相容的 280x100 專用畫布 -->
     <canvas id="ocr-canvas" width="280" height="100" style="display:none;"></canvas>
 
     <div class="movie-grid" id="movie-grid">載入片庫中...</div>
@@ -669,24 +668,21 @@
             }
         });
 
-        function triggerAdSkip(detectedText = '', skipSeconds = 26, toastLabel = '澳門新葡京') {
+        function triggerAdSkip(detectedText = '') {
             const now = Date.now();
             if (now - lastSkipTime < 3500) return;
             lastSkipTime = now;
 
-            console.log(`%c[精準命中] 識別到廣告文字:「${detectedText}」，立即快進 ${skipSeconds} 秒！`, 'color:#00ff00; font-size:14px; font-weight:bold;');
-            let target = video.currentTime + skipSeconds;
+            console.log(`%c[精準命中] 識別到廣告文字:「${detectedText}」，立即快進 26 秒！`, 'color:#00ff00; font-size:14px; font-weight:bold;');
+            let target = video.currentTime + 26;
             if (video.duration && target > video.duration) target = video.duration;
             video.currentTime = target;
 
-            skipToast.textContent = `⚡ 識別到「${toastLabel}」，已自動跳過 ${skipSeconds} 秒`;
+            skipToast.textContent = `⚡ 識別到「澳門新葡京」，已自動跳過 26 秒`;
             skipToast.style.display = 'block';
             setTimeout(() => { skipToast.style.display = 'none'; }, 2500);
         }
 
-        // ==========================================
-        // 100% 保持原汁原味的原廠 OCR 取樣核心（完全不碰壞濾鏡與畫布）
-        // ==========================================
         setInterval(async () => {
             if (!aiAdSkipChk.checked || video.paused || video.ended || !video.duration || isOcrProcessing) return;
 
@@ -722,29 +718,17 @@
                     isOcrProcessing = false;
                     const text = res.data.text.replace(/\s+/g, '');
 
-                    // 1. 中途插播廣告比對：「别再羡慕别人暴富」（快進 20 秒）
-                    const fullBaoFu = text.includes('别再羡慕别人暴富') || text.includes('別再羨慕別人暴富');
-                    const hasBaoFu = text.includes('暴富');
-                    const hasXianMu = text.includes('羡慕') || text.includes('羨慕') || text.includes('羡') || text.includes('羨');
-                    const hasBieRen = text.includes('别人') || text.includes('別人') || text.includes('别再') || text.includes('別再');
-
-                    // 命中整句，或同時出現「暴富」與「羨慕/別人/別再」，立即快進 20 秒
-                    if (fullBaoFu || (hasBaoFu && (hasXianMu || hasBieRen))) {
-                        triggerAdSkip(text, 20, '别再羡慕别人暴富');
-                        return;
-                    }
-
-                    // 2. 核心判定：同時包含「澳門/澳门」與「新葡京」（快進 26 秒）
+                    // 1. 核心判定：同時包含「澳門/澳门」與「新葡京」（中間不管夾雜金錢符號 $、空格或任何符號）
                     const hasAoMen = text.includes('澳门') || text.includes('澳門');
                     const hasXinPuJing = text.includes('新葡京');
                     const isAoMenXinPuJing = hasAoMen && hasXinPuJing;
 
-                    // 3. 補充關鍵字與特徵（701701 網址、舊網址 288588、娛樂城、發財）
+                    // 2. 補充關鍵字與特徵（701701 網址、舊網址 288588、娛樂城、發財）
                     const extraKeywords = ['701701', '288588', '娱乐城', '娛樂城', '发财', '發財', '澳门新', '澳門新'];
                     const hasExtraMatch = extraKeywords.some(kw => text.includes(kw));
 
                     if (isAoMenXinPuJing || hasExtraMatch) {
-                        triggerAdSkip(text, 26, '澳門新葡京');
+                        triggerAdSkip(text);
                     }
                 }
             } catch (err) {
@@ -994,7 +978,7 @@
                 }
 
                 card.innerHTML = `
-                    <div class="card-star-btn" title="點擊取消收藏" onclick="removeFavoriteByName(event, '${vod.vod_name.replace(/'/g, "\'")}')">★</div>
+                    <div class="card-star-btn" title="點擊取消收藏" onclick="removeFavoriteByName(event, '${vod.vod_name.replace(/'/g, "\\'")}')">★</div>
                     <div class="movie-note">${vod.vod_remarks || '已收藏'}</div>
                     <img src="${vod.vod_pic || ''}" onerror="this.src='https://placehold.co/140x195?text=No+Cover'" />
                     ${progressTagHtml}
