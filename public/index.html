@@ -355,6 +355,140 @@
             object-fit: contain !important;
         }
 
+        /* 播放器中央轉圈 Loading + 即時下載速度 OSD */
+        .player-loading-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.82);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            border-radius: 14px;
+            padding: 16px 24px;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            z-index: 2300;
+            backdrop-filter: blur(8px);
+            min-width: 170px;
+            text-align: center;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.65);
+        }
+        .player-loading-overlay.show {
+            display: flex;
+        }
+        .loading-spinner {
+            width: 34px;
+            height: 34px;
+            border: 3.5px solid rgba(255, 255, 255, 0.2);
+            border-top-color: #00ff88;
+            border-radius: 50%;
+            animation: spinLoader 0.85s linear infinite;
+        }
+        @keyframes spinLoader {
+            to { transform: rotate(360deg); }
+        }
+        .loading-speed-text {
+            font-size: 13px;
+            font-weight: bold;
+            color: #00ff88;
+            font-family: monospace;
+            white-space: nowrap;
+        }
+        .loading-status-sub {
+            font-size: 11px;
+            color: #ccc;
+        }
+        .btn-dead-link-switch {
+            margin-top: 4px;
+            background: #e50914;
+            border: 1px solid #ff4d4d;
+            color: #fff;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(229, 9, 20, 0.5);
+            animation: voicePulse 1.3s infinite;
+        }
+        .btn-dead-link-switch:hover {
+            background: #ff1e27;
+        }
+
+        /* 選集列表上方的「一鍵換源」面板 */
+        .source-switch-bar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-switch-source {
+            background: #1b2e3c;
+            border: 1px solid #2b6cb0;
+            color: #63b3ed;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+        .btn-switch-source:hover {
+            background: #253f52;
+            color: #fff;
+        }
+        .alt-sources-panel {
+            display: none;
+            background: #12171d;
+            border: 1px solid #263849;
+            border-radius: 6px;
+            padding: 8px 10px;
+            margin-bottom: 10px;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .alt-sources-panel.show {
+            display: flex;
+        }
+        .alt-sources-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #90cdf4;
+            font-weight: bold;
+        }
+        .alt-sources-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .alt-source-chip {
+            background: #1e293b;
+            border: 1px solid #38bdf8;
+            color: #e0f2fe;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .alt-source-chip:hover {
+            background: #0284c7;
+            color: #fff;
+        }
+        .alt-source-chip.active-source {
+            background: #006633;
+            border-color: #00ff88;
+            color: #fff;
+            font-weight: bold;
+        }
+
         /* 手機端手勢即時 OSD */
         .gesture-osd {
             position: absolute;
@@ -771,6 +905,14 @@
 
                 <video id="video-player" autoplay playsinline webkit-playsinline x5-playsinline x5-video-player-type="h5" crossorigin="anonymous"></video>
 
+                <!-- 播放器中央轉圈 Loading + 即時下載速度 -->
+                <div class="player-loading-overlay" id="player-loading-overlay">
+                    <div class="loading-spinner" id="loading-spinner"></div>
+                    <div class="loading-speed-text" id="loading-speed-text">正在連線片源...</div>
+                    <div class="loading-status-sub" id="loading-status-sub">請稍候</div>
+                    <button type="button" class="btn-dead-link-switch" id="btn-dead-link-switch" style="display:none;" onclick="event.stopPropagation(); triggerSmartSourceSwitch(true)">🔄 資源無回應，點此自動換源</button>
+                </div>
+
                 <div class="skip-toast" id="skip-toast">⚡ 識別到「澳門新葡京」，已自動跳過 26 秒</div>
 
                 <div class="seek-ripple" id="ripple-left">⏪ 10 秒</div>
@@ -819,7 +961,17 @@
         <div class="episodes-box">
             <div class="episodes-header">
                 <div class="episodes-title">選集列表</div>
-                <button class="fav-btn" id="fav-toggle-btn" onclick="toggleCurrentFavorite()" style="display: none;">☆ 加入最愛</button>
+                <div class="source-switch-bar">
+                    <button class="btn-switch-source" id="btn-switch-source" onclick="triggerSmartSourceSwitch(false)" style="display: none;" title="從上傳設定檔的其他直鏈搜尋可播放來源">🔄 換源</button>
+                    <button class="fav-btn" id="fav-toggle-btn" onclick="toggleCurrentFavorite()" style="display: none;">☆ 加入最愛</button>
+                </div>
+            </div>
+            <div class="alt-sources-panel" id="alt-sources-panel">
+                <div class="alt-sources-header">
+                    <span id="alt-sources-status">🔍 正在搜尋設定檔內的替代直鏈...</span>
+                    <button type="button" style="background:none;border:none;color:#888;padding:0 4px;font-size:12px;" onclick="closeAltSourcesPanel()">✕</button>
+                </div>
+                <div class="alt-sources-list" id="alt-sources-list"></div>
             </div>
             <div class="episodes-grid" id="episodes-grid">請點選下方影片查看選集</div>
         </div>
@@ -869,7 +1021,17 @@
         const rippleLeft = document.getElementById('ripple-left');
         const rippleRight = document.getElementById('ripple-right');
         const favToggleBtn = document.getElementById('fav-toggle-btn');
+        const btnSwitchSource = document.getElementById('btn-switch-source');
+        const altSourcesPanel = document.getElementById('alt-sources-panel');
+        const altSourcesStatus = document.getElementById('alt-sources-status');
+        const altSourcesList = document.getElementById('alt-sources-list');
         const favCountSpan = document.getElementById('fav-count');
+
+        const loadingOverlay = document.getElementById('player-loading-overlay');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const loadingSpeedText = document.getElementById('loading-speed-text');
+        const loadingStatusSub = document.getElementById('loading-status-sub');
+        const btnDeadLinkSwitch = document.getElementById('btn-dead-link-switch');
         const modeSwitchBtn = document.getElementById('mode-switch-btn');
         const voiceSearchBtn = document.getElementById('voice-search-btn');
 
@@ -1871,9 +2033,11 @@
         function updateFavBtnUI() {
             if (!currentVod) {
                 favToggleBtn.style.display = 'none';
+                if (btnSwitchSource) btnSwitchSource.style.display = 'none';
                 return;
             }
             favToggleBtn.style.display = 'inline-flex';
+            if (btnSwitchSource) btnSwitchSource.style.display = 'inline-flex';
             if (isFavorite(currentVod.vod_name)) {
                 favToggleBtn.textContent = '★ 已在最愛';
                 favToggleBtn.classList.add('active');
@@ -2059,22 +2223,32 @@
                 const res = await fetch(`/api/fetch-config?url=${encodeURIComponent(url)}`);
                 const data = await res.json();
 
-                let validSites = (data.sites || []).filter(s => {
+                let remoteValidSites = (data.sites || []).filter(s => {
                     if (!s || !s.api || typeof s.api !== 'string') return false;
                     if (s.type === 3 && !s.api.startsWith('http')) return false;
                     return s.api.startsWith('http');
                 });
 
-                if (validSites.length === 0 && localPresetSites.length > 0) {
-                    renderSites(localPresetSites);
-                    return;
+                // 動態將使用者上傳設定檔中的直鏈站點（localPresetSites）合併進線路站點清單（依 API 網址去重）
+                let mergedSites = [...remoteValidSites];
+                if (Array.isArray(localPresetSites) && localPresetSites.length > 0) {
+                    const existingApis = new Set(mergedSites.map(s => s.api.replace(/\/$/, '')));
+                    localPresetSites.forEach(localSite => {
+                        if (localSite && localSite.api && localSite.api.startsWith('http')) {
+                            const normApi = localSite.api.replace(/\/$/, '');
+                            if (!existingApis.has(normApi)) {
+                                mergedSites.push(localSite);
+                                existingApis.add(normApi);
+                            }
+                        }
+                    });
                 }
 
-                if (data.errorMsg && !isAutoInit && validSites.length === 0) {
+                if (data.errorMsg && !isAutoInit && mergedSites.length === 0) {
                     alert(`【線路提示】${data.errorMsg}`);
                 }
 
-                renderSites(validSites);
+                renderSites(mergedSites);
             } catch (err) {
                 if (localPresetSites.length > 0) {
                     renderSites(localPresetSites);
@@ -2265,8 +2439,13 @@
             }
         }
 
+        function closeAltSourcesPanel() {
+            if (altSourcesPanel) altSourcesPanel.classList.remove('show');
+        }
+
         function renderEpisodes(vod, targetEpName = '', startTime = 0) {
             scrollToPlayerBox();
+            closeAltSourcesPanel();
             currentVod = vod;
             updateFavBtnUI();
             updateOpEdUI();
@@ -2325,12 +2504,323 @@
         }
 
         // ==========================================
-        // 核心播放控制 (秒開配置 + 原地斷線救援 + 省流量直連)
+        // 播放器中央轉圈 Loading + 即時下載速度 & 智慧死鏈偵測引擎
+        // ==========================================
+        let loadingWatchdogTimer = null;
+        let lastDataActivityTime = 0;
+        let hasReceivedAnyData = false;
+        let lastBufferedEnd = 0;
+        let currentSpeedStr = '0 KB/s';
+
+        function formatSpeed(bytesPerSec) {
+            if (!bytesPerSec || bytesPerSec <= 0) return '0 KB/s';
+            if (bytesPerSec >= 1024 * 1024) {
+                return `${(bytesPerSec / (1024 * 1024)).toFixed(2)} MB/s`;
+            }
+            return `${Math.round(bytesPerSec / 1024)} KB/s`;
+        }
+
+        function getBufferedAhead() {
+            try {
+                if (video.buffered && video.buffered.length > 0) {
+                    const end = video.buffered.end(video.buffered.length - 1);
+                    return Math.max(0, end - (video.currentTime || 0));
+                }
+            } catch (e) {}
+            return 0;
+        }
+
+        function showPlayerLoading(speedLabel = '正在連線片源...', subLabel = '偵測串流中', showSwitchBtn = false, showSpin = true) {
+            if (!loadingOverlay) return;
+            loadingSpinner.style.display = showSpin ? 'block' : 'none';
+            loadingSpeedText.textContent = speedLabel;
+            loadingSpeedText.style.color = showSwitchBtn ? '#ff6b6b' : '#00ff88';
+            loadingStatusSub.textContent = subLabel;
+            btnDeadLinkSwitch.style.display = showSwitchBtn ? 'inline-block' : 'none';
+            loadingOverlay.classList.add('show');
+        }
+
+        function hidePlayerLoading() {
+            if (!loadingOverlay) return;
+            loadingOverlay.classList.remove('show');
+            btnDeadLinkSwitch.style.display = 'none';
+        }
+
+        function stopLoadingWatchdog() {
+            if (loadingWatchdogTimer) {
+                clearInterval(loadingWatchdogTimer);
+                loadingWatchdogTimer = null;
+            }
+        }
+
+        function startLoadingWatchdog() {
+            stopLoadingWatchdog();
+            const startTime = Date.now();
+            lastDataActivityTime = startTime;
+            hasReceivedAnyData = false;
+            lastBufferedEnd = 0;
+            currentSpeedStr = '0 KB/s';
+
+            showPlayerLoading('載入中... 0 KB/s', '正在連線伺服器', false, true);
+
+            loadingWatchdogTimer = setInterval(() => {
+                // 若影片已順暢播放且未處於等待緩衝狀態，自動隱藏 Loading
+                if (!video.paused && video.readyState >= 3 && !video.seeking) {
+                    hidePlayerLoading();
+                    return;
+                }
+
+                const now = Date.now();
+                const elapsedSec = (now - startTime) / 1000;
+                const idleSec = (now - lastDataActivityTime) / 1000;
+
+                // 檢查瀏覽器緩衝區是否有在推進（特別針對 iPhone 原生播放器）
+                let currentBufEnd = 0;
+                try {
+                    if (video.buffered && video.buffered.length > 0) {
+                        currentBufEnd = video.buffered.end(video.buffered.length - 1);
+                    }
+                } catch (e) {}
+
+                if (currentBufEnd > lastBufferedEnd + 0.05) {
+                    lastBufferedEnd = currentBufEnd;
+                    lastDataActivityTime = now;
+                    hasReceivedAnyData = true;
+                }
+
+                const isDownloading = (idleSec < 2.5);
+
+                if (isDownloading) {
+                    // 有數據正在下載：顯示即時網速或已緩衝秒數，延長寬限期至 30 秒不誤判
+                    const bufAhead = getBufferedAhead().toFixed(1);
+                    const speedDisplay = (currentSpeedStr !== '0 KB/s')
+                        ? `載入中... ${currentSpeedStr}`
+                        : `緩衝中... (已載入 ${bufAhead}s)`;
+                    showPlayerLoading(speedDisplay, '串流數據下載中，請稍候', false, true);
+
+                    if (elapsedSec > 30) {
+                        showPlayerLoading(speedDisplay, '片源載入過慢，可嘗試切換其他直鏈', true, true);
+                    }
+                } else {
+                    // 無任何下載跡象（0 KB/s 且緩衝區未動）：
+                    // 若完全沒收到任何數據超過 10 秒，或中途斷流停滯超過 15 秒，彈出自動換源提示
+                    const deadThreshold = hasReceivedAnyData ? 15 : 10;
+                    if (idleSec >= deadThreshold) {
+                        showPlayerLoading(
+                            '⚠️ 0 KB/s (無回應)',
+                            '該來源可能已失效或連線逾時',
+                            true,
+                            false
+                        );
+                    } else {
+                        const remainWait = Math.max(1, Math.ceil(deadThreshold - idleSec));
+                        showPlayerLoading(
+                            `等待回應... ${currentSpeedStr}`,
+                            `若無數據將於 ${remainWait} 秒後提示換源`,
+                            false,
+                            true
+                        );
+                    }
+                }
+            }, 600);
+        }
+
+        // 監聽原生 video 播放與緩衝事件
+        video.addEventListener('waiting', () => {
+            if (currentStreamUrl) {
+                showPlayerLoading(
+                    currentSpeedStr !== '0 KB/s' ? `緩衝中... ${currentSpeedStr}` : '正在緩衝畫面...',
+                    '網路波動緩衝中',
+                    false,
+                    true
+                );
+            }
+        });
+
+        video.addEventListener('playing', () => {
+            hasReceivedAnyData = true;
+            lastDataActivityTime = Date.now();
+            hidePlayerLoading();
+        });
+
+        video.addEventListener('canplay', () => {
+            if (!video.paused) {
+                hidePlayerLoading();
+            }
+        });
+
+        // ==========================================
+        // 智慧「一鍵換源」引擎（動態讀取使用者上傳設定檔的直鏈站點）
+        // ==========================================
+        let isSearchingSources = false;
+
+        function normalizeTitleForMatch(str) {
+            return (str || '')
+                .toLowerCase()
+                .replace(/[\s\-_：:（）()【】\[\]第季部集全HD高清藍光]/g, '');
+        }
+
+        function extractEpisodeListFromVod(vod) {
+            const playUrls = vod.vod_play_url || '';
+            const epList = [];
+            const servers = playUrls.split('$$$');
+            let m3u8Group = servers.find(s => s.includes('.m3u8')) || servers[0] || '';
+            const episodes = m3u8Group.split('#');
+            episodes.forEach(item => {
+                const parts = item.split('$');
+                if (parts.length >= 2) {
+                    epList.push({ name: parts[0].trim(), url: parts[1].trim() });
+                } else if (parts[0] && parts[0].startsWith('http')) {
+                    epList.push({ name: '播放', url: parts[0].trim() });
+                }
+            });
+            return epList;
+        }
+
+        function matchEpisodeFromList(epList, targetEpName, fallbackIdx = 0) {
+            if (!epList || epList.length === 0) return null;
+            if (!targetEpName) return epList[0];
+
+            // 1. 精準比對集數名稱
+            let found = epList.find(e => e.name === targetEpName);
+            if (found) return found;
+
+            // 2. 提取集數數字比對（例如「第01集」與「第1集」或「01」）
+            const numMatch = targetEpName.match(/(\d+)/);
+            if (numMatch) {
+                const targetNum = parseInt(numMatch[1], 10);
+                found = epList.find(e => {
+                    const m = e.name.match(/(\d+)/);
+                    return m && parseInt(m[1], 10) === targetNum;
+                });
+                if (found) return found;
+            }
+
+            // 3. 依索引位置回退
+            if (fallbackIdx >= 0 && fallbackIdx < epList.length) {
+                return epList[fallbackIdx];
+            }
+            return epList[0];
+        }
+
+        async function triggerSmartSourceSwitch(autoPlayFirst = false) {
+            if (!currentVod || !currentVod.vod_name) {
+                alert('請先選擇一部影片後再使用換源功能');
+                return;
+            }
+
+            // 動態取得使用者上傳設定檔中的直鏈站點（不寫死任何站點網址）
+            const candidateSites = (localPresetSites || []).filter(s => s && s.api && s.api.startsWith('http'));
+            if (candidateSites.length === 0) {
+                alert('尚未偵測到設定檔內的直鏈站點！請先點擊左上角「📁 載入設定檔」上傳您的 .txt 設定檔。');
+                return;
+            }
+
+            if (isSearchingSources) return;
+            isSearchingSources = true;
+
+            altSourcesPanel.classList.add('show');
+            altSourcesStatus.textContent = `🔍 正在搜尋設定檔中的 ${candidateSites.length} 個直鏈站點...`;
+            altSourcesList.innerHTML = '';
+
+            const currentApi = document.getElementById('site-select').value;
+            let searchWord = currentVod.vod_name;
+            if (converter) {
+                try { searchWord = await converter(searchWord); } catch (e) {}
+            }
+
+            // 取得目前集數在選集按鈕中的索引作為備援對齊
+            const epButtons = Array.from(document.querySelectorAll('.ep-btn'));
+            const currentEpIdx = Math.max(0, epButtons.findIndex(b => b.classList.contains('active')));
+
+            const targetNorm = normalizeTitleForMatch(currentVod.vod_name);
+
+            const tasks = candidateSites.map(async (site) => {
+                try {
+                    const query = `api=${encodeURIComponent(site.api)}&pg=1&wd=${encodeURIComponent(searchWord)}`;
+                    const res = await fetch(`/api/cms/list?${query}`);
+                    const data = await res.json();
+                    const list = data.list || [];
+                    if (list.length === 0) return null;
+
+                    // 優先找片名完全一致或高度吻合的項目
+                    let bestVod = list.find(v => v.vod_name === currentVod.vod_name) ||
+                                  list.find(v => normalizeTitleForMatch(v.vod_name) === targetNorm) ||
+                                  list.find(v => normalizeTitleForMatch(v.vod_name).includes(targetNorm) || targetNorm.includes(normalizeTitleForMatch(v.vod_name))) ||
+                                  list[0];
+
+                    const epList = extractEpisodeListFromVod(bestVod);
+                    const matchedEp = matchEpisodeFromList(epList, currentEpName, currentEpIdx);
+                    if (!matchedEp || !matchedEp.url) return null;
+
+                    return {
+                        siteName: site.name,
+                        siteApi: site.api,
+                        vod: bestVod,
+                        ep: matchedEp,
+                        isCurrentSite: (site.api === currentApi)
+                    };
+                } catch (e) {
+                    return null;
+                }
+            });
+
+            const results = (await Promise.all(tasks)).filter(Boolean);
+            isSearchingSources = false;
+
+            if (results.length === 0) {
+                altSourcesStatus.textContent = `❌ 其他直鏈站點均未找到《${currentVod.vod_name}》`;
+                return;
+            }
+
+            altSourcesStatus.textContent = `✅ 找到 ${results.length} 個可用直鏈來源（點擊立即切換）：`;
+            altSourcesList.innerHTML = '';
+
+            results.forEach((item) => {
+                const chip = document.createElement('button');
+                chip.type = 'button';
+                chip.className = `alt-source-chip ${item.isCurrentSite ? 'active-source' : ''}`;
+                chip.textContent = `${item.siteName} (${item.ep.name})`;
+                chip.onclick = () => {
+                    document.querySelectorAll('.alt-source-chip').forEach(c => c.classList.remove('active-source'));
+                    chip.classList.add('active-source');
+
+                    const siteSelect = document.getElementById('site-select');
+                    if (siteSelect && item.siteApi) {
+                        siteSelect.value = item.siteApi;
+                    }
+
+                    const resumeSec = (video && video.currentTime > 3) ? video.currentTime : 0;
+                    renderEpisodes(item.vod, item.ep.name, resumeSec);
+
+                    skipToast.textContent = `🔄 已切換至【${item.siteName}】- ${item.ep.name}`;
+                    skipToast.style.display = 'block';
+                    setTimeout(() => { skipToast.style.display = 'none'; }, 2600);
+                };
+                altSourcesList.appendChild(chip);
+            });
+
+            // 若由「死鏈自動換源」按鈕觸發，自動挑選第一個非當前失敗站點的來源立即播放
+            if (autoPlayFirst) {
+                const alternative = results.find(r => !r.isCurrentSite) || results[0];
+                if (alternative) {
+                    const chips = altSourcesList.querySelectorAll('.alt-source-chip');
+                    const targetIdx = results.indexOf(alternative);
+                    if (chips[targetIdx]) {
+                        chips[targetIdx].click();
+                    }
+                }
+            }
+        }
+
+        // ==========================================
+        // 核心播放控制 (秒開配置 + 原地斷線救援 + 網速監控)
         // ==========================================
         function playStream(rawUrl, title, startTime = 0) {
             isTriggeringNext = false;
             updateOpEdUI();
             updatePlayingTitle(`準備載入：${title}`);
+            startLoadingWatchdog();
 
             const proxiedUrl = `/api/proxy-m3u8?url=${encodeURIComponent(rawUrl)}`;
 
@@ -2368,6 +2858,25 @@
                     fragLoadingTimeOut: 20000
                 });
 
+                // 攔截切片下載事件計算即時下載速度 (MB/s 或 KB/s)
+                hlsInstance.on(Hls.Events.FRAG_LOADED, (event, data) => {
+                    hasReceivedAnyData = true;
+                    lastDataActivityTime = Date.now();
+                    try {
+                        const stats = data.frag && data.frag.stats;
+                        if (stats && stats.loading) {
+                            const bytes = stats.loaded || stats.total || 0;
+                            const durationMs = Math.max(1, (stats.loading.end || performance.now()) - (stats.loading.start || performance.now()));
+                            const bps = (bytes * 1000) / durationMs;
+                            currentSpeedStr = formatSpeed(bps);
+                        }
+                    } catch (e) {}
+                });
+
+                hlsInstance.on(Hls.Events.MANIFEST_LOADED, () => {
+                    lastDataActivityTime = Date.now();
+                });
+
                 hlsInstance.loadSource(proxiedUrl);
                 hlsInstance.attachMedia(video);
 
@@ -2395,22 +2904,31 @@
                         if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
                             hlsInstance.recoverMediaError();
                         } else if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                            // 網路報錯時立即在中央顯示死鏈與一鍵自動換源按鈕
+                            showPlayerLoading('⚠️ 0 KB/s (連線失敗)', '該片源伺服器無法連線', true, false);
                             hlsInstance.startLoad();
                         } else {
-                            hlsInstance.destroy();
-                            playStream(rawUrl, title, savedTime);
+                            showPlayerLoading('⚠️ 0 KB/s (解析異常)', '建議切換其他直鏈來源', true, false);
                         }
                     }
                 });
             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                 video.src = proxiedUrl;
-                video.addEventListener('loadedmetadata', function onMeta() {
+                const onMeta = () => {
+                    hasReceivedAnyData = true;
+                    lastDataActivityTime = Date.now();
                     updatePlayingTitle(`${title}`);
                     setMasterVolume(uiVolumeLevel, isAppMuted);
                     applyStartTime();
                     video.removeEventListener('loadedmetadata', onMeta);
-                });
-                video.play();
+                };
+                const onErr = () => {
+                    showPlayerLoading('⚠️ 0 KB/s (無法播放)', 'iOS 播放器無法載入此片源', true, false);
+                    video.removeEventListener('error', onErr);
+                };
+                video.addEventListener('loadedmetadata', onMeta);
+                video.addEventListener('error', onErr);
+                video.play().catch(() => {});
             }
         }
 
