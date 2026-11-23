@@ -2564,7 +2564,14 @@
             showPlayerLoading('載入中... 0 KB/s', '正在連線伺服器', false, true);
 
             loadingWatchdogTimer = setInterval(() => {
-                // 若影片已順暢播放且未處於等待緩衝狀態，自動隱藏 Loading
+                // 1. 使用者手動暫停時，絕對不顯示轉圈或換源提示，並持續刷新活動時間避免恢復播放時誤判超時
+                if (video.paused && !video.ended) {
+                    lastDataActivityTime = Date.now();
+                    hidePlayerLoading();
+                    return;
+                }
+
+                // 2. 若影片已順暢播放且未處於等待緩衝狀態，自動隱藏 Loading
                 if (!video.paused && video.readyState >= 3 && !video.seeking) {
                     hidePlayerLoading();
                     return;
@@ -2626,8 +2633,16 @@
         }
 
         // 監聽原生 video 播放與緩衝事件
+        video.addEventListener('pause', () => {
+            hidePlayerLoading();
+        });
+
+        video.addEventListener('play', () => {
+            lastDataActivityTime = Date.now();
+        });
+
         video.addEventListener('waiting', () => {
-            if (currentStreamUrl) {
+            if (currentStreamUrl && !video.paused) {
                 showPlayerLoading(
                     currentSpeedStr !== '0 KB/s' ? `緩衝中... ${currentSpeedStr}` : '正在緩衝畫面...',
                     '網路波動緩衝中',
