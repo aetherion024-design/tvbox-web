@@ -859,11 +859,15 @@
         body.mobile-mode .card-star-btn { top: 4px; left: 4px; width: 22px; height: 22px; font-size: 12px; }
         .card-star-btn:hover { transform: scale(1.15); background: rgba(229, 9, 20, 0.85); color: #fff; border-color: #e50914; }
 
-        .pagination { display: flex; justify-content: center; gap: 15px; align-items: center; margin: 30px 0; }
-        body.mobile-mode .pagination { gap: 10px; margin: 20px 0; }
-        .pagination button { background: #222; color: #fff; padding: 8px 18px; border: 1px solid #3a3a3a; }
-        body.mobile-mode .pagination button { padding: 6px 14px; font-size: 13px; }
-        .pagination button:hover { background: #333; }
+        .pagination { display: flex; justify-content: center; gap: 12px; align-items: center; margin: 30px 0; flex-wrap: wrap; }
+        body.mobile-mode .pagination { gap: 8px; margin: 20px 0; }
+        .pagination button { background: #222; color: #fff; padding: 8px 16px; border: 1px solid #3a3a3a; transition: all 0.2s; }
+        body.mobile-mode .pagination button { padding: 6px 12px; font-size: 13px; }
+        .pagination button:hover:not(:disabled) { background: #333; border-color: #666; }
+        .pagination button:disabled { opacity: 0.38; cursor: not-allowed; pointer-events: none; }
+        .page-indicator-wrap { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+        .page-end-hint { font-size: 11px; color: #ff9800; display: none; }
+        .page-end-hint.show { display: block; }
     </style>
 </head>
 <body>
@@ -998,9 +1002,13 @@
     <div class="movie-grid" id="movie-grid">載入片庫中...</div>
 
     <div class="pagination" id="pagination" style="display: none;">
-        <button onclick="changePage(-1)">上一頁</button>
-        <span id="page-indicator">第 1 頁</span>
-        <button onclick="changePage(1)">下一頁</button>
+        <button id="btn-first-page" onclick="goToFirstPage()" style="display: none;">⏮ 首頁</button>
+        <button id="btn-prev-page" onclick="changePage(-1)">上一頁</button>
+        <div class="page-indicator-wrap">
+            <span id="page-indicator">第 1 頁</span>
+            <span class="page-end-hint" id="page-end-hint">已是最後一頁</span>
+        </div>
+        <button id="btn-next-page" onclick="changePage(1)">下一頁</button>
     </div>
 
     <script>
@@ -1049,8 +1057,150 @@
 
         let hlsInstance = null;
         let currentPage = 1;
+        let totalPages = 0;
+        let isLastPageReached = false;
         let currentTypeId = '';
         let currentSearchWord = '';
+        let currentRawSearchWord = '';
+
+        // 兩岸影視譯名雙向對照庫（解決台灣譯名與大陸資源站片名不同導致搜不到的問題）
+        const TW_CN_TITLE_ALIASES = [
+            ['今際之國的闖關者', '弥留之国的爱丽丝'],
+            ['神隱少女', '千与千寻'],
+            ['霍爾的移動城堡', '哈尔的移动城堡'],
+            ['魔法公主', '幽灵公主'],
+            ['風之谷', '风之谷'],
+            ['天空之城', '天空之城'],
+            ['龍貓', '龙猫'],
+            ['崖上的波妞', '悬崖上的金鱼姬'],
+            ['蒼鷺與少年', '你想活出怎样的人生'],
+            ['你的名字', '你的名字。'],
+            ['鈴芽之旅', '铃芽之旅'],
+            ['天氣之子', '天气之子'],
+            ['排球少年', '排球少年!!'],
+            ['鬼滅之刃', '鬼灭之刃'],
+            ['咒術迴戰', '咒术回战'],
+            ['葬送的芙莉蓮', '葬送的芙莉莲'],
+            ['間諜家家酒', '间谍过家家'],
+            ['我推的孩子', '我推的孩子'],
+            ['鏈鋸人', '电锯人'],
+            ['進擊的巨人', '进击的巨人'],
+            ['我的英雄學院', '我的英雄学院'],
+            ['一拳超人', '一拳超人'],
+            ['海賊王', '航海王'],
+            ['火影忍者', '火影忍者'],
+            ['名偵探柯南', '名侦探柯南'],
+            ['蠟筆小新', '蜡笔小新'],
+            ['哆啦A夢', '哆啦A梦'],
+            ['小叮噹', '哆啦A梦'],
+            ['櫻桃小丸子', '樱桃小丸子'],
+            ['玩命關頭', '速度与激情'],
+            ['刺激1995', '肖申克的救赎'],
+            ['全面啟動', '盗梦空间'],
+            ['星際效應', '星际穿越'],
+            ['蝙蝠俠：黑暗騎士', '蝙蝠侠：黑暗骑士'],
+            ['黑暗騎士', '黑暗骑士'],
+            ['復仇者聯盟', '复仇者联盟'],
+            ['蜘蛛人', '蜘蛛侠'],
+            ['鋼鐵人', '钢铁侠'],
+            ['美國隊長', '美国队长'],
+            ['雷神索爾', '雷神'],
+            ['奇異博士', '奇异博士'],
+            ['星際異攻隊', '银河护卫队'],
+            ['蟻人', '蚁人'],
+            ['死侍', '死侍'],
+            ['金剛狼', '金刚狼'],
+            ['捍衛任務', '疾速追杀'],
+            ['不可能的任務', '碟中谍'],
+            ['007：生死交戰', '007：无暇赴死'],
+            ['神鬼奇航', '加勒比海盗'],
+            ['哈利波特', '哈利·波特'],
+            ['魔戒', '指环王'],
+            ['哈比人', '霍比特人'],
+            ['阿凡達', '阿凡达'],
+            ['鐵達尼號', '泰坦尼克号'],
+            ['侏羅紀公園', '侏罗纪公园'],
+            ['侏羅紀世界', '侏罗纪世界'],
+            ['變形金剛', '变形金刚'],
+            ['哥吉拉', '哥斯拉'],
+            ['沙丘', '沙丘'],
+            ['奧本海默', '奥本海默'],
+            ['芭比', '芭比'],
+            ['寄生上流', '寄生虫'],
+            ['屍速列車', '釜山行'],
+            ['魷魚遊戲', '鱿鱼游戏'],
+            ['黑暗榮耀', '黑暗荣耀'],
+            ['淚之女王', '眼泪女王'],
+            ['愛的迫降', '爱的迫降'],
+            ['鬼怪', '孤单又灿烂的神：鬼怪'],
+            ['梨泰院Class', '梨泰院Class'],
+            ['太陽的後裔', '太阳的后裔'],
+            ['來自星星的你', '来自星星的你'],
+            ['絕命毒師', '绝命毒师'],
+            ['冰與火之歌', '权力的游戏'],
+            ['權力遊戲', '权力的游戏'],
+            ['怪奇物語', '怪奇物语'],
+            ['黑鏡', '黑镜'],
+            ['紙房子', '纸钞屋'],
+            ['星期三', '星期三'],
+            ['最後生還者', '最后生还者'],
+            ['核爆家園', '切尔诺贝利'],
+            ['新世紀福爾摩斯', '神探夏洛克'],
+            ['生活大爆炸', '生活大爆炸'],
+            ['六人行', '老友记'],
+            ['陰屍路', '行尸走肉'],
+            ['越獄風雲', '越狱'],
+            ['半澤直樹', '半泽直树'],
+            ['派遣女醫', 'Doctor-X'],
+            ['東京大飯店', '东京大饭店'],
+            ['初戀', 'First Love 初恋'],
+            ['重啟人生', '重启人生'],
+            ['王冠', '王冠'],
+            ['捍衛戰士：獨行俠', '壮志凌云2：独行侠'],
+            ['捍衛戰士', '壮志凌云'],
+            ['神鬼戰士', '角斗士'],
+            ['拯救大兵瑞恩', '拯救大兵瑞恩'],
+            ['搶救雷恩大兵', '拯救大兵瑞恩'],
+            ['阿甘正傳', '阿甘正传'],
+            ['楚門的世界', '楚门的世界'],
+            ['海上鋼琴師', '海上钢琴师'],
+            ['美麗人生', '美丽人生'],
+            ['綠色奇蹟', '绿里奇迹'],
+            ['當幸福來敲門', '当幸福来敲门'],
+            ['讓子彈飛', '让子弹飞'],
+            ['無間道', '无间道'],
+            ['功夫', '功夫'],
+            ['少林足球', '少林足球'],
+            ['甄嬛傳', '后宫·甄嬛传'],
+            ['琅琊榜', '琅琊榜'],
+            ['慶餘年', '庆余年'],
+            ['三體', '三体'],
+            ['繁花', '繁花'],
+            ['蒼蘭訣', '苍兰诀'],
+            ['長相思', '长相思'],
+            ['墨雨雲間', '墨雨云间'],
+            ['玫瑰的故事', '玫瑰的故事']
+        ];
+
+        function resolveAliasKeywords(rawInput) {
+            const trimmed = (rawInput || '').trim();
+            if (!trimmed) return [];
+            const normInput = trimmed.toLowerCase().replace(/[\s：:·\-_]/g, '');
+            const aliases = new Set();
+
+            TW_CN_TITLE_ALIASES.forEach(([tw, cn]) => {
+                const normTw = tw.toLowerCase().replace(/[\s：:·\-_]/g, '');
+                const normCn = cn.toLowerCase().replace(/[\s：:·\-_]/g, '');
+                if (normInput === normTw || normTw.includes(normInput) || normInput.includes(normTw)) {
+                    aliases.add(cn);
+                }
+                if (normInput === normCn || normCn.includes(normInput) || normInput.includes(normCn)) {
+                    aliases.add(tw);
+                }
+            });
+
+            return Array.from(aliases);
+        }
         let lastSkipTime = 0;
         let controlsHideTimer = null;
         let videoBrightness = 1.0;
@@ -2135,7 +2285,10 @@
             btn.classList.add('active');
             currentTypeId = typeId;
             currentSearchWord = '';
+            currentRawSearchWord = '';
             currentPage = 1;
+            totalPages = 0;
+            isLastPageReached = false;
             fetchVideos();
         }
 
@@ -2289,8 +2442,11 @@
 
         function onSiteChange() {
             currentPage = 1;
+            totalPages = 0;
+            isLastPageReached = false;
             currentTypeId = '';
             currentSearchWord = '';
+            currentRawSearchWord = '';
             isShowingFavList = false;
             currentLoadedClasses = [];
 
@@ -2328,9 +2484,12 @@
             input.value = '';
             toggleClearSearchBtn();
             input.focus();
-            if (currentSearchWord) {
+            if (currentSearchWord || currentRawSearchWord) {
                 currentSearchWord = '';
+                currentRawSearchWord = '';
                 currentPage = 1;
+                totalPages = 0;
+                isLastPageReached = false;
                 fetchVideos(false);
             }
         }
@@ -2342,6 +2501,7 @@
             // 手機版搜尋時自動收起虛擬鍵盤，避免鍵盤遮擋下方搜尋結果
             document.getElementById('search-input').blur();
 
+            currentRawSearchWord = rawWord;
             if (converter) {
                 currentSearchWord = await converter(rawWord);
             } else {
@@ -2351,36 +2511,126 @@
             isShowingFavList = false;
             currentTypeId = '';
             currentPage = 1;
+            totalPages = 0;
+            isLastPageReached = false;
             await fetchVideos(true);
         }
 
-        function changePage(delta) {
-            if (currentPage + delta < 1) return;
-            currentPage += delta;
-            fetchVideos();
-            window.scrollTo({ top: isMobileMode ? 350 : 450, behavior: 'smooth' });
+        function updatePaginationUI() {
+            const pagEl = document.getElementById('pagination');
+            const firstBtn = document.getElementById('btn-first-page');
+            const prevBtn = document.getElementById('btn-prev-page');
+            const nextBtn = document.getElementById('btn-next-page');
+            const indicator = document.getElementById('page-indicator');
+            const endHint = document.getElementById('page-end-hint');
+
+            if (!pagEl) return;
+            pagEl.style.display = 'flex';
+
+            if (firstBtn) firstBtn.style.display = (currentPage > 1) ? 'inline-block' : 'none';
+            if (prevBtn) prevBtn.disabled = (currentPage <= 1);
+
+            const reachedEnd = isLastPageReached || (totalPages > 0 && currentPage >= totalPages);
+            if (nextBtn) nextBtn.disabled = reachedEnd;
+
+            if (indicator) {
+                indicator.textContent = (totalPages > 0)
+                    ? `第 ${currentPage} / ${totalPages} 頁`
+                    : `第 ${currentPage} 頁`;
+            }
+            if (endHint) {
+                if (reachedEnd) {
+                    endHint.classList.add('show');
+                } else {
+                    endHint.classList.remove('show');
+                }
+            }
         }
 
-        async function fetchVideos(scrollToResults = false) {
+        function goToFirstPage() {
+            if (currentPage <= 1) return;
+            currentPage = 1;
+            isLastPageReached = false;
+            fetchVideos(false, true);
+            const targetEl = document.getElementById('category-row') || document.getElementById('movie-grid');
+            if (targetEl) targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function changePage(delta) {
+            if (delta < 0 && currentPage <= 1) return;
+            if (delta > 0 && (isLastPageReached || (totalPages > 0 && currentPage >= totalPages))) return;
+
+            const prevPage = currentPage;
+            currentPage += delta;
+            if (delta < 0) isLastPageReached = false;
+
+            fetchVideos(false, true, prevPage);
+            const targetEl = document.getElementById('category-row') || document.getElementById('movie-grid');
+            if (targetEl) targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        async function fetchVideos(scrollToResults = false, isPageTurn = false, fallbackPage = 1) {
             const api = document.getElementById('site-select').value;
             if (!api) return;
 
             const grid = document.getElementById('movie-grid');
-            grid.innerHTML = '<div style="color:#aaa;">正在載入片庫中...</div>';
+            const prevGridHtml = grid.innerHTML;
+            const prevPaginationDisplay = document.getElementById('pagination').style.display;
 
-            let query = `api=${encodeURIComponent(api)}&pg=${currentPage}`;
-            if (currentTypeId) query += `&t=${encodeURIComponent(currentTypeId)}`;
-            if (currentSearchWord) query += `&wd=${encodeURIComponent(currentSearchWord)}`;
+            // 翻頁時保留原畫面並呈現微半透明載入感，避免畫面閃白；切換分類或新搜尋才顯示載入文字
+            if (isPageTurn && currentPage > 1) {
+                grid.style.opacity = '0.55';
+            } else {
+                grid.style.opacity = '1';
+                grid.innerHTML = '<div style="color:#aaa;">正在載入片庫中...</div>';
+            }
+
+            const fetchCmsPage = async (keyword) => {
+                let q = `api=${encodeURIComponent(api)}&pg=${currentPage}`;
+                if (currentTypeId) q += `&t=${encodeURIComponent(currentTypeId)}`;
+                if (keyword) q += `&wd=${encodeURIComponent(keyword)}`;
+                const r = await fetch(`/api/cms/list?${q}`);
+                return await r.json();
+            };
 
             try {
-                const res = await fetch(`/api/cms/list?${query}`);
-                const data = await res.json();
+                let data = await fetchCmsPage(currentSearchWord);
+                let list = data.list || [];
+
+                // 若為搜尋狀態，檢查是否有兩岸譯名別名對照（例如「今際之國的闖關者」->「弥留之国的爱丽丝」）
+                if (currentSearchWord && currentPage === 1) {
+                    const aliasList = resolveAliasKeywords(currentRawSearchWord || currentSearchWord);
+                    const extraKeywords = [];
+                    for (const alias of aliasList) {
+                        const convAlias = converter ? await converter(alias) : alias;
+                        if (convAlias && convAlias !== currentSearchWord && !extraKeywords.includes(convAlias)) {
+                            extraKeywords.push(convAlias);
+                        }
+                    }
+
+                    // 命中台陸譯名對照表時，並發查詢別名並自動合併去重
+                    if (extraKeywords.length > 0) {
+                        const aliasResults = await Promise.all(extraKeywords.map(kw => fetchCmsPage(kw).catch(() => ({ list: [] }))));
+                        const seenIds = new Set(list.map(v => `${v.vod_id}_${v.vod_name}`));
+                        aliasResults.forEach(resData => {
+                            (resData.list || []).forEach(v => {
+                                const key = `${v.vod_id}_${v.vod_name}`;
+                                if (!seenIds.has(key)) {
+                                    list.push(v);
+                                    seenIds.add(key);
+                                }
+                            });
+                        });
+                    }
+                }
+
+                grid.style.opacity = '1';
 
                 if (data.class && Array.isArray(data.class) && data.class.length > 0) {
                     renderCategoryButtons(data.class);
-                } else if (currentLoadedClasses.length === 0 && data.list && Array.isArray(data.list) && data.list.length > 0) {
+                } else if (currentLoadedClasses.length === 0 && list.length > 0) {
                     const extracted = [];
-                    data.list.forEach(item => {
+                    list.forEach(item => {
                         if (item.type_id && item.type_name) {
                             extracted.push({ type_id: item.type_id, type_name: item.type_name });
                         }
@@ -2390,8 +2640,24 @@
                     }
                 }
 
-                const list = data.list || [];
+                const parsedPageCount = parseInt(data.pagecount || data.page_count || 0, 10);
+                if (parsedPageCount > 0) {
+                    totalPages = parsedPageCount;
+                }
+
                 if (list.length === 0) {
+                    // 防呆機制：如果是翻到下一頁才發現沒資料（例如第9頁按下一頁到第10頁是空的），
+                    // 絕不清空畫面也不隱藏分頁列，而是自動退回上一頁並鎖定「下一頁」按鈕！
+                    if (isPageTurn && currentPage > 1) {
+                        currentPage = fallbackPage;
+                        totalPages = currentPage;
+                        isLastPageReached = true;
+                        grid.innerHTML = prevGridHtml;
+                        document.getElementById('pagination').style.display = prevPaginationDisplay || 'flex';
+                        updatePaginationUI();
+                        return;
+                    }
+
                     grid.innerHTML = `查無相關影片。`;
                     document.getElementById('pagination').style.display = 'none';
                     if (scrollToResults) {
@@ -2402,6 +2668,8 @@
                     }
                     return;
                 }
+
+                isLastPageReached = (totalPages > 0 && currentPage >= totalPages);
 
                 grid.innerHTML = '';
                 list.forEach(vod => {
@@ -2416,8 +2684,7 @@
                     grid.appendChild(card);
                 });
 
-                document.getElementById('pagination').style.display = 'flex';
-                document.getElementById('page-indicator').textContent = `第 ${currentPage} 頁`;
+                updatePaginationUI();
 
                 if (scrollToResults) {
                     setTimeout(() => {
@@ -2427,7 +2694,14 @@
                 }
 
             } catch (err) {
-                grid.innerHTML = `<span style="color:red">載入失敗: ${err.message}</span>`;
+                grid.style.opacity = '1';
+                if (isPageTurn && currentPage > 1) {
+                    currentPage = fallbackPage;
+                    grid.innerHTML = prevGridHtml;
+                    updatePaginationUI();
+                } else {
+                    grid.innerHTML = `<span style="color:red">載入失敗: ${err.message}</span>`;
+                }
             }
         }
 
@@ -2743,6 +3017,11 @@
             if (converter) {
                 try { searchWord = await converter(searchWord); } catch (e) {}
             }
+            const aliasCandidates = resolveAliasKeywords(currentVod.vod_name);
+            let altSearchWord = '';
+            if (aliasCandidates.length > 0) {
+                altSearchWord = converter ? await converter(aliasCandidates[0]) : aliasCandidates[0];
+            }
 
             // 取得目前集數在選集按鈕中的索引作為備援對齊
             const epButtons = Array.from(document.querySelectorAll('.ep-btn'));
@@ -2755,7 +3034,13 @@
                     const query = `api=${encodeURIComponent(site.api)}&pg=1&wd=${encodeURIComponent(searchWord)}`;
                     const res = await fetch(`/api/cms/list?${query}`);
                     const data = await res.json();
-                    const list = data.list || [];
+                    let list = data.list || [];
+                    if (list.length === 0 && altSearchWord && altSearchWord !== searchWord) {
+                        const altQuery = `api=${encodeURIComponent(site.api)}&pg=1&wd=${encodeURIComponent(altSearchWord)}`;
+                        const altRes = await fetch(`/api/cms/list?${altQuery}`);
+                        const altData = await altRes.json();
+                        list = altData.list || [];
+                    }
                     if (list.length === 0) return null;
 
                     // 優先找片名完全一致或高度吻合的項目
