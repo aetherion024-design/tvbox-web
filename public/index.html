@@ -27,6 +27,7 @@
             transition: max-width 0.25s ease, padding 0.25s ease;
         }
 
+        /* 頂部狀態列固定安全區遮罩（防止網頁捲動時文字與 iPhone 時間/劉海重疊） */
         .ios-status-bar-guard {
             display: none;
             position: fixed;
@@ -38,19 +39,33 @@
             z-index: 9000;
             pointer-events: none;
         }
-        body.mobile-mode .ios-status-bar-guard { display: block; }
-        body.lock-scroll .ios-status-bar-guard { display: none !important; }
+        body.mobile-mode .ios-status-bar-guard {
+            display: block;
+        }
+        body.lock-scroll .ios-status-bar-guard {
+            display: none !important;
+        }
 
+        /* 全螢幕時徹底鎖死背景頁面，避免拖動或露白 */
         body.lock-scroll {
             overflow: hidden !important;
             background: #000 !important;
             padding: 0 !important;
         }
-        body.lock-scroll > *:not(.main-layout) { display: none !important; }
-        body.lock-scroll .main-layout { margin: 0 !important; padding: 0 !important; display: block !important; }
+        body.lock-scroll > *:not(.main-layout) {
+            display: none !important;
+        }
+        body.lock-scroll .main-layout {
+            margin: 0 !important;
+            padding: 0 !important;
+            display: block !important;
+        }
         body.lock-scroll .episodes-box,
-        body.lock-scroll .player-bottom-bar { display: none !important; }
+        body.lock-scroll .player-bottom-bar {
+            display: none !important;
+        }
 
+        /* 手機版樣式（加入頂部劉海與狀態列安全間距，避免按鈕與時間/訊號重疊） */
         body.mobile-mode {
             padding: max(48px, calc(14px + env(safe-area-inset-top))) max(10px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
             max-width: 480px;
@@ -60,12 +75,19 @@
             min-height: 100vh;
         }
         @media (max-width: 899px) {
-            body.mobile-mode { max-width: 100%; border: none; }
+            body.mobile-mode {
+                max-width: 100%;
+                border: none;
+            }
         }
+        /* 手機橫放非全螢幕時減少頂部留白，保留安全區 */
         @media screen and (orientation: landscape) {
-            body.mobile-mode { padding-top: max(12px, env(safe-area-inset-top)); }
+            body.mobile-mode {
+                padding-top: max(12px, env(safe-area-inset-top));
+            }
         }
 
+        /* 頂部操作列 */
         .header {
             display: flex;
             gap: 10px;
@@ -158,6 +180,7 @@
         body.mobile-mode .search-input-wrap { flex: 1; width: auto; min-width: 0; }
         body.mobile-mode .search-box > button { flex-shrink: 0; padding: 8px 12px; }
 
+        /* 語音搜尋按鈕 */
         .btn-voice {
             background: #262626;
             border: 1px solid #4a4a4a;
@@ -199,6 +222,7 @@
         .ad-switch-box label { cursor: pointer; user-select: none; }
         body.mobile-mode .ad-switch-box { width: 100%; margin-left: 0; font-size: 12px; padding: 6px 10px; }
 
+        /* 主排版 */
         .main-layout { display: grid; grid-template-columns: 1fr 340px; gap: 20px; margin-bottom: 20px; }
         body.mobile-mode .main-layout { grid-template-columns: 1fr; gap: 14px; margin-bottom: 16px; }
 
@@ -218,6 +242,7 @@
             overscroll-behavior: none !important;
         }
 
+        /* Android / 桌面原生全螢幕 */
         .player-box:fullscreen,
         .player-box:-webkit-full-screen {
             width: 100vw !important;
@@ -228,6 +253,7 @@
             background: #000 !important;
         }
 
+        /* iPhone (Safari & Chrome) 滿版全螢幕 */
         .player-box.pseudo-fullscreen {
             position: fixed !important;
             inset: 0 !important;
@@ -242,6 +268,7 @@
             padding: 0 !important;
         }
 
+        /* 直立握持全螢幕時自動順時針旋轉 90 度 */
         @media screen and (orientation: portrait) {
             .player-box.pseudo-fullscreen.auto-rotate-landscape {
                 inset: auto !important;
@@ -258,6 +285,7 @@
         .player-box.hide-cursor { cursor: none !important; }
         .player-box.hide-cursor * { cursor: none !important; }
 
+        /* 全螢幕左上角片名與集數頂部浮動欄 */
         .video-top-bar {
             position: absolute;
             top: 0;
@@ -327,6 +355,7 @@
             object-fit: contain !important;
         }
 
+        /* 播放器中央轉圈 Loading + 即時下載速度 OSD */
         .player-loading-overlay {
             position: absolute;
             top: 50%;
@@ -347,7 +376,9 @@
             text-align: center;
             box-shadow: 0 6px 24px rgba(0,0,0,0.65);
         }
-        .player-loading-overlay.show { display: flex; }
+        .player-loading-overlay.show {
+            display: flex;
+        }
         .loading-spinner {
             width: 34px;
             height: 34px;
@@ -356,7 +387,9 @@
             border-radius: 50%;
             animation: spinLoader 0.85s linear infinite;
         }
-        @keyframes spinLoader { to { transform: rotate(360deg); } }
+        @keyframes spinLoader {
+            to { transform: rotate(360deg); }
+        }
         .loading-speed-text {
             font-size: 13px;
             font-weight: bold;
@@ -364,7 +397,10 @@
             font-family: monospace;
             white-space: nowrap;
         }
-        .loading-status-sub { font-size: 11px; color: #ccc; }
+        .loading-status-sub {
+            font-size: 11px;
+            color: #ccc;
+        }
         .btn-dead-link-switch {
             margin-top: 4px;
             background: #e50914;
@@ -378,9 +414,16 @@
             box-shadow: 0 2px 10px rgba(229, 9, 20, 0.5);
             animation: voicePulse 1.3s infinite;
         }
-        .btn-dead-link-switch:hover { background: #ff1e27; }
+        .btn-dead-link-switch:hover {
+            background: #ff1e27;
+        }
 
-        .source-switch-bar { display: flex; align-items: center; gap: 6px; }
+        /* 選集列表上方的「一鍵換源」面板 */
+        .source-switch-bar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
         .btn-switch-source {
             background: #1b2e3c;
             border: 1px solid #2b6cb0;
@@ -395,7 +438,10 @@
             gap: 4px;
             white-space: nowrap;
         }
-        .btn-switch-source:hover { background: #253f52; color: #fff; }
+        .btn-switch-source:hover {
+            background: #253f52;
+            color: #fff;
+        }
         .alt-sources-panel {
             display: none;
             background: #12171d;
@@ -406,7 +452,9 @@
             flex-direction: column;
             gap: 6px;
         }
-        .alt-sources-panel.show { display: flex; }
+        .alt-sources-panel.show {
+            display: flex;
+        }
         .alt-sources-header {
             display: flex;
             justify-content: space-between;
@@ -415,7 +463,11 @@
             color: #90cdf4;
             font-weight: bold;
         }
-        .alt-sources-list { display: flex; flex-wrap: wrap; gap: 6px; }
+        .alt-sources-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
         .alt-source-chip {
             background: #1e293b;
             border: 1px solid #38bdf8;
@@ -426,7 +478,10 @@
             cursor: pointer;
             transition: all 0.15s;
         }
-        .alt-source-chip:hover { background: #0284c7; color: #fff; }
+        .alt-source-chip:hover {
+            background: #0284c7;
+            color: #fff;
+        }
         .alt-source-chip.active-source {
             background: #006633;
             border-color: #00ff88;
@@ -434,6 +489,7 @@
             font-weight: bold;
         }
 
+        /* 手機端手勢即時 OSD */
         .gesture-osd {
             position: absolute;
             top: 50%;
@@ -459,7 +515,11 @@
             text-align: center;
         }
         .gesture-osd.show { opacity: 1; }
-        .gesture-osd-sub { font-size: 12px; color: #00ff88; font-family: monospace; }
+        .gesture-osd-sub {
+            font-size: 12px;
+            color: #00ff88;
+            font-family: monospace;
+        }
         .gesture-osd-bar {
             width: 100%;
             height: 5px;
@@ -468,8 +528,14 @@
             overflow: hidden;
             position: relative;
         }
-        .gesture-osd-fill { height: 100%; background: #00ff88; width: 50%; transition: background-color 0.15s; }
+        .gesture-osd-fill {
+            height: 100%;
+            background: #00ff88;
+            width: 50%;
+            transition: background-color 0.15s;
+        }
 
+        /* 底部控制列：一般模式獨立接在影片下方（100%不遮擋畫面與字幕），全螢幕模式浮動於底部並自動淡出 */
         .custom-controls {
             position: relative;
             width: 100%;
@@ -484,7 +550,10 @@
             transition: opacity 0.25s ease-in-out;
             z-index: 1200;
         }
-        body.mobile-mode .custom-controls { padding: 5px 10px 8px; gap: 3px; }
+        body.mobile-mode .custom-controls {
+            padding: 5px 10px 8px;
+            gap: 3px;
+        }
         .player-box:fullscreen .custom-controls,
         .player-box:-webkit-full-screen .custom-controls,
         .player-box.pseudo-fullscreen .custom-controls {
@@ -621,7 +690,7 @@
             font-size: 14px;
             font-weight: bold;
             display: none;
-            z-index: 3000;
+            z-index: 2200;
             box-shadow: 0 4px 15px rgba(0,0,0,0.6);
             pointer-events: none;
             white-space: nowrap;
@@ -661,6 +730,7 @@
         .skip-btn:hover { background: #333; color: #fff; }
         .skip-btn.active { background: #193322; border-color: #00cc66; color: #00ff88; font-weight: bold; }
 
+        /* 選集列表 */
         .episodes-box { background: #181818; border-radius: 8px; padding: 15px; max-height: 490px; overflow-y: auto; }
         body.mobile-mode .episodes-box { padding: 12px; max-height: 280px; }
 
@@ -704,6 +774,7 @@
         .ep-btn:hover { background: #333; color: #fff; }
         .ep-btn.active { background: #cc0000; border-color: #cc0000; color: #fff; font-weight: bold; }
 
+        /* 最近觀看紀錄 */
         .history-section { background: #181818; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; }
         body.mobile-mode .history-section { padding: 10px 12px; margin-bottom: 16px; }
 
@@ -733,26 +804,31 @@
         .history-thumb-wrap { width: 100%; height: 168px; position: relative; background: #111; }
         body.mobile-mode .history-thumb-wrap { height: 140px; }
         .history-thumb { width: 100%; height: 100%; object-fit: cover; object-position: top center; }
-        
-        .history-site-tag {
+        .history-source-tag {
             position: absolute;
             top: 4px;
             left: 4px;
-            background: rgba(0, 0, 0, 0.85);
-            color: #00ff88;
+            background: rgba(15, 23, 42, 0.86);
+            border: 1px solid rgba(56, 189, 248, 0.45);
+            color: #7dd3fc;
             font-size: 9.5px;
-            font-weight: bold;
             padding: 1px 5px;
             border-radius: 3px;
-            border: 1px solid rgba(0, 255, 136, 0.5);
-            max-width: 78%;
+            white-space: nowrap;
+            max-width: calc(100% - 28px);
             overflow: hidden;
             text-overflow: ellipsis;
-            white-space: nowrap;
             z-index: 4;
             pointer-events: none;
         }
-
+        .btn-dead-link-switch:disabled {
+            background: #333;
+            border-color: #555;
+            color: #aaa;
+            box-shadow: none;
+            animation: none;
+            cursor: default;
+        }
         .history-ep-tag { position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,0.85); color: #00ff88; font-size: 10px; padding: 2px 6px; border-radius: 3px; white-space: nowrap; max-width: 90%; overflow: hidden; text-overflow: ellipsis; }
         .history-info { padding: 6px 8px; }
         .history-name { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
@@ -760,6 +836,7 @@
         .history-del-btn { position: absolute; top: 3px; right: 3px; background: rgba(0,0,0,0.65); border: none; color: #fff; width: 20px; height: 20px; border-radius: 50%; font-size: 11px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 5; }
         .history-del-btn:hover { background: #e50914; }
 
+        /* 分類列 */
         .category-container { background: #161616; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #252525; }
         body.mobile-mode .category-container { padding: 10px 12px; margin-bottom: 16px; }
         .category-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; align-items: center; -webkit-overflow-scrolling: touch; }
@@ -771,6 +848,7 @@
         .cat-btn.fav-tab { border-color: #ffaa00; color: #ffbb00; }
         .cat-btn.fav-tab.active { background: #ffaa00; color: #000; font-weight: bold; border-color: #ffaa00; }
 
+        /* 影片網格 */
         .movie-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; }
         body.mobile-mode .movie-grid { grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)); gap: 10px; }
 
@@ -806,11 +884,15 @@
         body.mobile-mode .card-star-btn { top: 4px; left: 4px; width: 22px; height: 22px; font-size: 12px; }
         .card-star-btn:hover { transform: scale(1.15); background: rgba(229, 9, 20, 0.85); color: #fff; border-color: #e50914; }
 
-        .pagination { display: flex; justify-content: center; gap: 15px; align-items: center; margin: 30px 0; }
-        body.mobile-mode .pagination { gap: 10px; margin: 20px 0; }
-        .pagination button { background: #222; color: #fff; padding: 8px 18px; border: 1px solid #3a3a3a; }
-        body.mobile-mode .pagination button { padding: 6px 14px; font-size: 13px; }
-        .pagination button:hover { background: #333; }
+        .pagination { display: flex; justify-content: center; gap: 12px; align-items: center; margin: 30px 0; flex-wrap: wrap; }
+        body.mobile-mode .pagination { gap: 8px; margin: 20px 0; }
+        .pagination button { background: #222; color: #fff; padding: 8px 16px; border: 1px solid #3a3a3a; transition: all 0.2s; }
+        body.mobile-mode .pagination button { padding: 6px 12px; font-size: 13px; }
+        .pagination button:hover:not(:disabled) { background: #333; border-color: #666; }
+        .pagination button:disabled { opacity: 0.38; cursor: not-allowed; pointer-events: none; }
+        .page-indicator-wrap { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+        .page-end-hint { font-size: 11px; color: #ff9800; display: none; }
+        .page-end-hint.show { display: block; }
     </style>
 </head>
 <body>
@@ -828,8 +910,8 @@
         </div>
 
         <div class="ad-switch-box">
-            <input type="checkbox" id="ai-ad-skip-chk" checked>
-            <label for="ai-ad-skip-chk">⚡ 文字精準識別：澳門新葡京娛樂城 (+17s)</label>
+            <input type="checkbox" id="ai-ad-skip-chk">
+            <label for="ai-ad-skip-chk">⚡ 文字精準識別：澳門新葡京娛樂城 (+26s)</label>
         </div>
 
         <div class="search-box">
@@ -852,6 +934,7 @@
 
                 <video id="video-player" autoplay playsinline webkit-playsinline x5-playsinline x5-video-player-type="h5" crossorigin="anonymous"></video>
 
+                <!-- 播放器中央轉圈 Loading + 即時下載速度 -->
                 <div class="player-loading-overlay" id="player-loading-overlay">
                     <div class="loading-spinner" id="loading-spinner"></div>
                     <div class="loading-speed-text" id="loading-speed-text">正在連線片源...</div>
@@ -859,7 +942,7 @@
                     <button type="button" class="btn-dead-link-switch" id="btn-dead-link-switch" style="display:none;" onclick="event.stopPropagation(); triggerSmartSourceSwitch(true)">🔄 資源無回應，點此自動換源</button>
                 </div>
 
-                <div class="skip-toast" id="skip-toast">⚡ 識別到「澳門新葡京」，已自動跳過 17 秒</div>
+                <div class="skip-toast" id="skip-toast">⚡ 識別到「澳門新葡京」，已自動跳過 26 秒</div>
 
                 <div class="seek-ripple" id="ripple-left">⏪ 10 秒</div>
                 <div class="seek-ripple" id="ripple-right">10 秒 ⏩</div>
@@ -944,9 +1027,13 @@
     <div class="movie-grid" id="movie-grid">載入片庫中...</div>
 
     <div class="pagination" id="pagination" style="display: none;">
-        <button onclick="changePage(-1)">⏮ 上一頁</button>
-        <span id="page-indicator">第 1 頁</span>
-        <button onclick="changePage(1)">下一頁 ⏭</button>
+        <button id="btn-first-page" onclick="goToFirstPage()" style="display: none;">⏮ 首頁</button>
+        <button id="btn-prev-page" onclick="changePage(-1)">上一頁</button>
+        <div class="page-indicator-wrap">
+            <span id="page-indicator">第 1 頁</span>
+            <span class="page-end-hint" id="page-end-hint">已是最後一頁</span>
+        </div>
+        <button id="btn-next-page" onclick="changePage(1)">下一頁</button>
     </div>
 
     <script>
@@ -995,13 +1082,820 @@
 
         let hlsInstance = null;
         let currentPage = 1;
-        let maxPage = 1;
+        let totalPages = 0;
+        let isLastPageReached = false;
         let currentTypeId = '';
         let currentSearchWord = '';
+        let currentRawSearchWord = '';
+
+        // 兩岸影視譯名雙向對照庫（解決台灣譯名與大陸資源站片名不同導致搜不到的問題）
+        const TW_CN_TITLE_ALIASES = [
+            ['今際之國的闖關者', '弥留之国的爱丽丝'],
+            ['神隱少女', '千与千寻'],
+            ['霍爾的移動城堡', '哈尔的移动城堡'],
+            ['魔法公主', '幽灵公主'],
+            ['風之谷', '风之谷'],
+            ['天空之城', '天空之城'],
+            ['龍貓', '龙猫'],
+            ['魔女宅急便', '魔女宅急便'],
+            ['紅豬', '红猪'],
+            ['平成狸合戰', '百变狸猫'],
+            ['心之谷', '侧耳倾听'],
+            ['貓的報恩', '猫的报恩'],
+            ['地海戰記', '地海战记'],
+            ['崖上的波妞', '悬崖上的金鱼姬'],
+            ['借物少女艾莉緹', '借东西的小人阿莉埃蒂'],
+            ['來自紅花坂', '虞美人盛开的山坡'],
+            ['風起', '起风了'],
+            ['輝耀姬物語', '辉夜姬物语'],
+            ['回憶中的瑪妮', '记忆中的玛妮'],
+            ['蒼鷺與少年', '你想活出怎样的人生'],
+            ['螢火蟲之墓', '萤火虫之墓'],
+            ['兒時的點點滴滴', '岁月的童话'],
+            ['你的名字', '你的名字。'],
+            ['鈴芽之旅', '铃芽之旅'],
+            ['天氣之子', '天气之子'],
+            ['言葉之庭', '言叶之庭'],
+            ['秒速5公分', '秒速5厘米'],
+            ['追逐繁星的孩子', '追逐繁星的孩子'],
+            ['雲之彼端，約定的地方', '云之彼端，约定的地方'],
+            ['星之聲', '星之声'],
+            ['跳躍吧！時空少女', '穿越时空的少女'],
+            ['夏日大作戰', '夏日大作战'],
+            ['狼的孩子雨和雪', '狼的孩子雨和雪'],
+            ['怪物的孩子', '怪物之子'],
+            ['未來的未來', '未来的未来'],
+            ['龍與雀斑公主', '雀斑公主'],
+            ['排球少年', '排球少年!!'],
+            ['排球少年！！垃圾場的決戰', '排球少年！！垃圾场决战'],
+            ['鬼滅之刃', '鬼灭之刃'],
+            ['鬼滅之刃 無限列車篇', '鬼灭之刃 剧场版 无限列车篇'],
+            ['咒術迴戰', '咒术回战'],
+            ['葬送的芙莉蓮', '葬送的芙莉莲'],
+            ['間諜家家酒', '间谍过家家'],
+            ['我推的孩子', '我推的孩子'],
+            ['鏈鋸人', '电锯人'],
+            ['進擊的巨人', '进击的巨人'],
+            ['我的英雄學院', '我的英雄学院'],
+            ['一拳超人', '一拳超人'],
+            ['路人超能100', '灵能百分百'],
+            ['海賊王', '航海王'],
+            ['航海王', '海贼王'],
+            ['火影忍者', '火影忍者'],
+            ['慕留人', '博人传'],
+            ['名偵探柯南', '名侦探柯南'],
+            ['蠟筆小新', '蜡笔小新'],
+            ['哆啦A夢', '哆啦A梦'],
+            ['小叮噹', '哆啦A梦'],
+            ['櫻桃小丸子', '樱桃小丸子'],
+            ['灌籃高手', '灌篮高手'],
+            ['網球王子', '网球王子'],
+            ['黑子的籃球', '黑子的篮球'],
+            ['影子籃球員', '黑子的篮球'],
+            ['死神', '境·界'],
+            ['妖精的尾巴', '妖精的尾巴'],
+            ['魔導少年', '妖精的尾巴'],
+            ['獵人', '全职猎人'],
+            ['幽遊白書', '幽游白书'],
+            ['七龍珠', '龙珠'],
+            ['七龍珠Z', '龙珠Z'],
+            ['七龍珠超', '龙珠超'],
+            ['聖鬥士星矢', '圣斗士星矢'],
+            ['美少女戰士', '美少女战士'],
+            ['庫洛魔法使', '魔卡少女樱'],
+            ['百變小櫻', '魔卡少女樱'],
+            ['數碼寶貝', '数码宝贝'],
+            ['神奇寶貝', '宝可梦'],
+            ['精靈寶可夢', '宝可梦'],
+            ['遊戲王', '游戏王'],
+            ['鋼之鍊金術師', '钢之炼金术师'],
+            ['銀魂', '银魂'],
+            ['刀劍神域', '刀剑神域'],
+            ['關於我轉生變成史萊姆這檔事', '关于我转生变成史莱姆这档事'],
+            ['無職轉生', '无职转生'],
+            ['Re：從零開始的異世界生活', 'Re：从零开始的异世界生活'],
+            ['為美好的世界獻上祝福', '为美好的世界献上祝福'],
+            ['OVERLORD', '不死者之王'],
+            ['骨王', '不死者之王'],
+            ['盾之勇者成名錄', '盾之勇者成名录'],
+            ['迷宮飯', '迷宫饭'],
+            ['膽大黨', '胆大党'],
+            ['怪獸8號', '怪兽8号'],
+            ['藥師少女的獨語', '药屋少女的呢喃'],
+            ['孤獨搖滾', '孤独摇滚！'],
+            ['輝夜姬想讓人告白', '辉夜大小姐想让我告白'],
+            ['五等分的新娘', '五等分的新娘'],
+            ['青春豬頭少年', '青春猪头少年'],
+            ['紫羅蘭永恆花園', '紫罗兰永恒花园'],
+            ['聲之形', '声之形'],
+            ['我想吃掉你的胰臟', '我想吃掉你的胰脏'],
+            ['四月是你的謊言', '四月是你的谎言'],
+            ['未聞花名', '未闻花名'],
+            ['我們仍未知道那天所看見的花名', '未闻花名'],
+            ['命運石之門', '命运石之门'],
+            ['反叛的魯路修', '叛逆的鲁路修'],
+            ['新世紀福音戰士', '新世纪福音战士'],
+            ['機動戰士鋼彈', '机动战士高达'],
+            ['鋼彈', '高达'],
+            ['攻殼機動隊', '攻壳机动队'],
+            ['阿基拉', '阿基拉'],
+            ['星際牛仔', '星际牛仔'],
+            ['混沌武士', '混沌武士'],
+            ['蟲師', '虫师'],
+            ['夏目友人帳', '夏目友人帐'],
+            ['妖怪聯絡簿', '夏目友人帐'],
+            ['文豪野犬', '文豪野犬'],
+            ['東京喰種', '东京食尸鬼'],
+            ['東京復仇者', '东京复仇者'],
+            ['藍色監獄', '蓝色监狱'],
+            ['黃金神威', '黄金神威'],
+            ['冰海戰記', '海盗战记'],
+            ['來自深淵', '来自深渊'],
+            ['約定的夢幻島', '约定的梦幻岛'],
+            ['賽馬娘', '赛马娘'],
+            ['莉可麗絲', '莉可丽丝'],
+            ['電馭叛客：邊緣行者', '赛博朋克：边缘行者'],
+            ['雙城之戰', '英雄联盟：双城之战'],
+            ['腦筋急轉彎', '头脑特工队'],
+            ['腦筋急轉彎2', '头脑特工队2'],
+            ['動物方城市', '疯狂动物城'],
+            ['優獸大都會', '疯狂动物城'],
+            ['玩具總動員', '玩具总动员'],
+            ['怪獸電力公司', '怪兽电力公司'],
+            ['怪獸大學', '怪兽大学'],
+            ['海底總動員', '海底总动员'],
+            ['超人特攻隊', '超人总动员'],
+            ['汽車總動員', '赛车总动员'],
+            ['料理鼠王', '美食总动员'],
+            ['瓦力', '机器人总动员'],
+            ['天外奇蹟', '飞屋环游记'],
+            ['勇敢傳說', '勇敢传说'],
+            ['可可夜總會', '寻梦环游记'],
+            ['靈魂急轉彎', '心灵奇旅'],
+            ['路卡的夏天', '夏日友晴天'],
+            ['青春養成記', '青春变形记'],
+            ['元素方城市', '疯狂元素城'],
+            ['冰雪奇緣', '冰雪奇缘'],
+            ['魔髮奇緣', '长发公主'],
+            ['無敵破壞王', '无敌破坏王'],
+            ['大英雄天團', '超能陆战队'],
+            ['海洋奇緣', '海洋奇缘'],
+            ['尋龍使者：拉雅', '寻龙传说'],
+            ['魔法滿屋', '魔法满屋'],
+            ['星願', '星愿'],
+            ['獅子王', '狮子王'],
+            ['美女與野獸', '美女与野兽'],
+            ['阿拉丁', '阿拉丁'],
+            ['小美人魚', '小美人鱼'],
+            ['仙履奇緣', '灰姑娘'],
+            ['黑魔女：沉睡魔咒', '沉睡魔咒'],
+            ['時尚惡女：庫伊拉', '黑白魔女库伊拉'],
+            ['神偷奶爸', '神偷奶爸'],
+            ['小小兵', '小黄人大眼萌'],
+            ['馴龍高手', '驯龙高手'],
+            ['功夫熊貓', '功夫熊猫'],
+            ['史瑞克', '怪物史瑞克'],
+            ['馬達加斯加', '马达加斯加'],
+            ['冰原歷險記', '冰川时代'],
+            ['古魯家族', '疯狂原始人'],
+            ['鞋貓劍客', '穿靴子的猫'],
+            ['超級瑪利歐兄弟電影版', '超级马力欧兄弟大电影'],
+            ['蜘蛛人：新宇宙', '蜘蛛侠：平行宇宙'],
+            ['蜘蛛人：穿越新宇宙', '蜘蛛侠：纵横宇宙'],
+            ['復仇者聯盟', '复仇者联盟'],
+            ['復仇者聯盟：奧創紀元', '复仇者联盟2：奥创纪元'],
+            ['復仇者聯盟：無限之戰', '复仇者联盟3：无限战争'],
+            ['復仇者聯盟：終局之戰', '复仇者联盟4：终局之战'],
+            ['鋼鐵人', '钢铁侠'],
+            ['美國隊長', '美国队长'],
+            ['美國隊長：酷寒戰士', '美国队长2'],
+            ['美國隊長：英雄內戰', '美国队长3'],
+            ['雷神索爾', '雷神'],
+            ['雷神索爾：諸神黃昏', '雷神3：诸神黄昏'],
+            ['無敵浩克', '无敌浩克'],
+            ['黑寡婦', '黑寡妇'],
+            ['尚氣與十環傳奇', '尚气与十环传奇'],
+            ['永恆族', '永恒族'],
+            ['蜘蛛人：返校日', '蜘蛛侠：英雄归来'],
+            ['蜘蛛人：離家日', '蜘蛛侠：英雄远征'],
+            ['蜘蛛人：無家日', '蜘蛛侠：英雄无归'],
+            ['奇異博士', '奇异博士'],
+            ['奇異博士2：失控多重宇宙', '奇异博士2：疯狂多元宇宙'],
+            ['黑豹', '黑豹'],
+            ['黑豹2：瓦干達萬歲', '黑豹2'],
+            ['星際異攻隊', '银河护卫队'],
+            ['蟻人', '蚁人'],
+            ['驚奇隊長', '惊奇队长'],
+            ['死侍', '死侍'],
+            ['死侍與金鋼狼', '死侍与金刚狼'],
+            ['X戰警', 'X战警'],
+            ['X戰警：第一戰', 'X战警：第一战'],
+            ['X戰警：未來昔日', 'X战警：逆转未来'],
+            ['羅根', '金刚狼3：殊死一战'],
+            ['金鋼狼', '金刚狼'],
+            ['猛毒', '毒液'],
+            ['蝙蝠俠：開戰時刻', '蝙蝠侠：侠影之谜'],
+            ['蝙蝠俠：黑暗騎士', '蝙蝠侠：黑暗骑士'],
+            ['黑暗騎士：黎明昇起', '蝙蝠侠：黑暗骑士崛起'],
+            ['小丑', '小丑'],
+            ['小丑：雙重瘋狂', '小丑2：双重妄想'],
+            ['超人：鋼鐵英雄', '超人：钢铁之躯'],
+            ['蝙蝠俠對超人：正義曙光', '蝙蝠侠大战超人：正义黎明'],
+            ['正義聯盟', '正义联盟'],
+            ['神力女超人', '神奇女侠'],
+            ['水行俠', '海王'],
+            ['閃電俠', '闪电侠'],
+            ['沙贊', '雷霆沙赞'],
+            ['自殺突擊隊', '自杀小队'],
+            ['黑亞當', '黑亚当'],
+            ['玩命關頭', '速度与激情'],
+            ['刺激1995', '肖申克的救赎'],
+            ['全面啟動', '盗梦空间'],
+            ['星際效應', '星际穿越'],
+            ['敦克爾克大行動', '敦刻尔克'],
+            ['天能', '信条'],
+            ['奧本海默', '奥本海默'],
+            ['記憶拼圖', '记忆碎片'],
+            ['頂尖對決', '致命魔术'],
+            ['沙丘', '沙丘'],
+            ['沙丘：第二部', '沙丘2'],
+            ['銀翼殺手', '银翼杀手'],
+            ['銀翼殺手2049', '银翼杀手2049'],
+            ['異星入境', '降临'],
+            ['怒火邊界', '边境杀手'],
+            ['捍衛任務', '疾速追杀'],
+            ['不可能的任務', '碟中谍'],
+            ['007：生死交戰', '007：无暇赴死'],
+            ['007：空降危機', '007：大破天幕杀机'],
+            ['神鬼奇航', '加勒比海盗'],
+            ['哈利波特', '哈利·波特'],
+            ['怪獸與牠們的產地', '神奇动物在哪里'],
+            ['魔戒', '指环王'],
+            ['哈比人', '霍比特人'],
+            ['阿凡達', '阿凡达'],
+            ['阿凡達：水之道', '阿凡达：水之道'],
+            ['鐵達尼號', '泰坦尼克号'],
+            ['魔鬼終結者', '终结者'],
+            ['異形', '异形'],
+            ['異形：羅穆路斯', '异形：夺命舰'],
+            ['普羅米修斯', '普罗米修斯'],
+            ['侏羅紀公園', '侏罗纪公园'],
+            ['侏羅紀世界', '侏罗纪世界'],
+            ['變形金剛', '变形金刚'],
+            ['大黃蜂', '大黄蜂'],
+            ['哥吉拉', '哥斯拉'],
+            ['哥吉拉與金剛：新帝國', '哥斯拉大战金刚2：帝国崛起'],
+            ['環太平洋', '环太平洋'],
+            ['明日邊界', '明日边缘'],
+            ['捍衛戰士', '壮志凌云'],
+            ['捍衛戰士：獨行俠', '壮志凌云2：独行侠'],
+            ['神鬼戰士', '角斗士'],
+            ['搶救雷恩大兵', '拯救大兵瑞恩'],
+            ['辛德勒的名單', '辛德勒的名单'],
+            ['阿甘正傳', '阿甘正传'],
+            ['楚門的世界', '楚门的世界'],
+            ['海上鋼琴師', '海上钢琴师'],
+            ['美麗人生', '美丽人生'],
+            ['綠色奇蹟', '绿里奇迹'],
+            ['當幸福來敲門', '当幸福来敲门'],
+            ['心靈捕手', '心灵捕手'],
+            ['春風化雨', '死亡诗社'],
+            ['華爾街之狼', '华尔街之狼'],
+            ['神鬼交鋒', '猫鼠游戏'],
+            ['神鬼無間', '无间道风云'],
+            ['隔離島', '禁闭岛'],
+            ['神鬼獵人', '荒野猎人'],
+            ['花月殺手', '花月杀手'],
+            ['計程車司機', '出租车司机'],
+            ['教父', '教父'],
+            ['黑色追緝令', '低俗小说'],
+            ['追殺比爾', '杀死比尔'],
+            ['惡棍特工', '无耻混蛋'],
+            ['決殺令', '被解救的姜戈'],
+            ['八惡人', '八恶人'],
+            ['從前，有個好萊塢', '好莱坞往事'],
+            ['鬥陣俱樂部', '搏击俱乐部'],
+            ['火線追緝令', '七宗罪'],
+            ['控制', '消失的爱人'],
+            ['社群網戰', '社交网络'],
+            ['駭客任務', '黑客帝国'],
+            ['V怪客', 'V字仇杀队'],
+            ['星際大戰', '星球大战'],
+            ['印第安納瓊斯', '夺宝奇兵'],
+            ['回到未來', '回到未来'],
+            ['E.T.外星人', 'E.T.外星人'],
+            ['大白鯊', '大白鲨'],
+            ['鬼店', '闪灵'],
+            ['發條橘子', '发条橙'],
+            ['2001太空漫遊', '2001太空漫游'],
+            ['沉默的羔羊', '沉默的羔羊'],
+            ['刺激驚爆點', '非常嫌疑犯'],
+            ['美麗境界', '美丽心灵'],
+            ['王者之聲：宣戰時刻', '国王的演讲'],
+            ['貧民百萬富翁', '贫民窟的百万富翁'],
+            ['少年PI的奇幻漂流', '少年派的奇幻漂流'],
+            ['斷背山', '断背山'],
+            ['色，戒', '色，戒'],
+            ['臥虎藏龍', '卧虎藏龙'],
+            ['飲食男女', '饮食男女'],
+            ['喜宴', '喜宴'],
+            ['推手', '推手'],
+            ['樂來越愛你', '爱乐之城'],
+            ['進擊的鼓手', '爆裂鼓手'],
+            ['巴比倫', '巴比伦'],
+            ['媽的多重宇宙', '瞬息全宇宙'],
+            ['鯨', '鲸'],
+            ['芭比', '芭比'],
+            ['可憐的東西', '可怜的东西'],
+            ['鋒迴路轉', '利刃出鞘'],
+            ['幸福綠皮書', '绿皮书'],
+            ['波希米亞狂想曲', '波西米亚狂想曲'],
+            ['火箭人', '火箭人'],
+            ['一個巨星的誕生', '一个明星的诞生'],
+            ['真愛每一天', '时空恋旅人'],
+            ['愛在黎明破曉時', '爱在黎明破晓前'],
+            ['愛在日落巴黎時', '爱在日落黄昏时'],
+            ['愛在午夜希臘時', '爱在午夜降临前'],
+            ['王牌冤家', '暖暖内含光'],
+            ['雲端情人', '她'],
+            ['歡迎來到布達佩斯大飯店', '布达佩斯大饭店'],
+            ['超級狐狸先生', '了不起的狐狸爸爸'],
+            ['瘋狂麥斯：憤怒道', '疯狂的麦克斯4：狂暴之路'],
+            ['芙莉歐莎：瘋狂麥斯傳奇篇章', '疯狂的麦克斯：狂暴女神'],
+            ['銀護', '银河护卫队'],
+            ['絕地救援', '火星救援'],
+            ['地心引力', '地心引力'],
+            ['模仿遊戲', '模仿游戏'],
+            ['愛的萬物論', '万物理论'],
+            ['最黑暗的時刻', '至暗时刻'],
+            ['1917', '1917'],
+            ['西線無戰事', '西线无战事'],
+            ['鋼鐵英雄', '血战钢锯岭'],
+            ['美國狙擊手', '美国狙击手'],
+            ['危機倒數', '拆弹部队'],
+            ['亞果出任務', '逃离德黑兰'],
+            ['驚爆焦點', '聚焦'],
+            ['大賣空', '大空头'],
+            ['自由之心', '为奴十二年'],
+            ['月光下的藍色男孩', '月光男孩'],
+            ['水底情深', '水形物语'],
+            ['游牧人生', '无依之地'],
+            ['樂動心旋律', '健听女孩'],
+            ['奧斯卡', '奥斯卡'],
+            ['飢餓遊戲', '饥饿游戏'],
+            ['移動迷宮', '移动迷宫'],
+            ['分歧者', '分歧者'],
+            ['暮光之城', '暮光之城'],
+            ['格雷的五十道陰影', '五十度灰'],
+            ['穿著Prada的惡魔', '穿普拉达的女王'],
+            ['高年級實習生', '实习生'],
+            ['白日夢冒險王', '白日梦想家'],
+            ['一路玩到掛', '遗愿清单'],
+            ['三個傻瓜', '三傻大闹宝莱坞'],
+            ['我和我的冠軍女兒', '摔跤吧！爸爸'],
+            ['隱藏的大明星', '神秘巨星'],
+            ['救救菜英文', '印式英语'],
+            ['逆轉人生', '触不可及'],
+            ['放牛班的春天', '放牛班的春天'],
+            ['艾蜜莉的異想世界', '天使爱美丽'],
+            ['終極追殺令', '这个杀手不太冷'],
+            ['第五元素', '第五元素'],
+            ['露西', '超体'],
+            ['即刻救援', '飓风营救'],
+            ['玩命快遞', '非常人贩'],
+            ['惡靈古堡', '生化危机'],
+            ['沉默之丘', '寂静岭'],
+            ['奪魂鋸', '电锯惊魂'],
+            ['厲陰宅', '招魂'],
+            ['安娜貝爾', '安娜贝尔'],
+            ['鬼修女', '修女'],
+            ['陰兒房', '潜伏'],
+            ['逃出絕命鎮', '逃出绝命镇'],
+            ['我們', '我们'],
+            ['不！', '不'],
+            ['噤界', '寂静之地'],
+            ['宿怨', '遗传厄运'],
+            ['仲夏魘', '仲夏夜惊魂'],
+            ['牠', '小丑回魂'],
+            ['絕命毒師', '绝命毒师'],
+            ['絕命律師', '风骚律师'],
+            ['冰與火之歌：權力遊戲', '权力的游戏'],
+            ['冰與火之歌', '权力的游戏'],
+            ['權力遊戲', '权力的游戏'],
+            ['龍族前傳', '龙之家族'],
+            ['怪奇物語', '怪奇物语'],
+            ['黑鏡', '黑镜'],
+            ['紙房子', '纸钞屋'],
+            ['星期三', '星期三'],
+            ['最後生還者', '最后生还者'],
+            ['核爆家園', '切尔诺贝利'],
+            ['新世紀福爾摩斯', '神探夏洛克'],
+            ['宅男行不行', '生活大爆炸'],
+            ['生活大爆炸', '生活大爆炸'],
+            ['少年謝爾頓', '小谢尔顿'],
+            ['六人行', '老友记'],
+            ['追愛總動員', '老爸老妈的浪漫史'],
+            ['摩登家庭', '摩登家庭'],
+            ['荒唐分局', '神烦警探'],
+            ['辦公室風雲', '办公室'],
+            ['陰屍路', '行尸走肉'],
+            ['越獄風雲', '越狱'],
+            ['24反恐任務', '24小时'],
+            ['LOST檔案', '迷失'],
+            ['雙峰', '双峰'],
+            ['X檔案', 'X档案'],
+            ['超自然檔案', '邪恶力量'],
+            ['吸血鬼日記', '吸血鬼日记'],
+            ['始祖家族', '初代吸血鬼'],
+            ['獵魔士', '猎魔人'],
+            ['巫師', '猎魔人'],
+            ['魔戒：力量之戒', '指环王：力量之戒'],
+            ['時光之輪', '时光之轮'],
+            ['曼達洛人', '曼达洛人'],
+            ['安道爾', '安多'],
+            ['歐比王肯諾比', '欧比旺'],
+            ['亞蘇卡', '阿索卡'],
+            ['洛基', '洛基'],
+            ['汪達幻視', '旺达幻视'],
+            ['獵鷹與酷寒戰士', '猎鹰与冬兵'],
+            ['月光騎士', '月光骑士'],
+            ['鷹眼', '鹰眼'],
+            ['律師女浩克', '女浩克'],
+            ['黑袍糾察隊', '黑袍纠察队'],
+            ['V世代', 'V世代'],
+            ['無敵少俠', '无敌少侠'],
+            ['瑞克和莫蒂', '瑞克和莫蒂'],
+            ['愛x死x機器人', '爱，死亡和机器人'],
+            ['繼承之戰', '继承之战'],
+            ['白蓮花大飯店', '白莲花度假村'],
+            ['大熊餐廳', '熊家餐馆'],
+            ['泰德拉索：錯棚教練趣事多', '足球教练'],
+            ['人生切割術', '人生切割术'],
+            ['末日地堡', '羊毛战记'],
+            ['晨間直播秀', '早间新闻'],
+            ['王冠', '王冠'],
+            ['浴血黑幫', '浴血黑帮'],
+            ['唐頓莊園', '唐顿庄园'],
+            ['柏捷頓家族：名門韻事', '布里奇顿'],
+            ['后翼棄兵', '后翼弃兵'],
+            ['安眠書店', '你'],
+            ['漢尼拔', '汉尼拔'],
+            ['夢魘殺魔', '嗜血法医'],
+            ['破案神探', '心灵猎人'],
+            ['無間警探', '真探'],
+            ['冰血暴', '冰血暴'],
+            ['西方極樂園', '西部世界'],
+            ['異星災變', '异星灾变'],
+            ['基地', '基地'],
+            ['太空無垠', '苍穹浩瀚'],
+            ['碳變', '副本'],
+            ['雨傘學院', '伞学院'],
+            ['睡魔', '睡魔'],
+            ['好預兆', '好兆头'],
+            ['神秘博士', '神秘博士'],
+            ['黑道家族', '黑道家族'],
+            ['火線重案組', '火线'],
+            ['廣告狂人', '广告狂人'],
+            ['紙牌屋', '纸牌屋'],
+            ['反恐危機', '国土安全'],
+            ['使女的故事', '使女的故事'],
+            ['良醫墨非', '良医'],
+            ['怪醫豪斯', '豪斯医生'],
+            ['實習醫生', '实习医生格蕾'],
+            ['急診室的春天', '仁心仁术'],
+            ['無照律師', '金装律师'],
+            ['傲骨賢妻', '傲骨贤妻'],
+            ['傲骨之戰', '傲骨之战'],
+            ['謀殺入門課', '逍遥法外'],
+            ['花邊教主', '绯闻女孩'],
+            ['慾望城市', '欲望都市'],
+            ['艾蜜莉在巴黎', '艾米丽在巴黎'],
+            ['廢柴聯盟', '废柴联盟'],
+            ['良善之地', '善地'],
+            ['魯保羅變裝皇后秀', '鲁保罗变装皇后秀'],
+            ['諾曼第大空降', '兄弟连'],
+            ['太平洋戰爭', '太平洋'],
+            ['空戰群英', '空战群英'],
+            ['幕府將軍', '幕府将军'],
+            ['輻射', '辐射'],
+            ['異塵餘生', '辐射'],
+            ['紳士追殺令', '绅士们'],
+            ['馴鹿寶貝', '驯鹿宝贝'],
+            ['3體', '三体'],
+            ['寄生上流', '寄生虫'],
+            ['屍速列車', '釜山行'],
+            ['屍速列車：感染半島', '釜山行2：半岛'],
+            ['魷魚遊戲', '鱿鱼游戏'],
+            ['黑暗榮耀', '黑暗荣耀'],
+            ['淚之女王', '眼泪女王'],
+            ['愛的迫降', '爱的迫降'],
+            ['孤單又燦爛的神－鬼怪', '孤单又灿烂的神：鬼怪'],
+            ['鬼怪', '孤单又灿烂的神：鬼怪'],
+            ['梨泰院Class', '梨泰院Class'],
+            ['太陽的後裔', '太阳的后裔'],
+            ['來自星星的你', '来自星星的你'],
+            ['繼承者們', '继承者们'],
+            ['藍色海洋的傳說', '蓝色大海的传说'],
+            ['秘密花園', '秘密花园'],
+            ['原來是美男', '原来是美男'],
+            ['咖啡王子1號店', '咖啡王子1号店'],
+            ['宮野蠻王妃', '宫'],
+            ['我叫金三順', '我叫金三顺'],
+            ['大長今', '大长今'],
+            ['請回答1988', '请回答1988'],
+            ['請回答1994', '请回答1994'],
+            ['請回答1997', '请回答1997'],
+            ['機智醫生生活', '机智的医生生活'],
+            ['機智牢房生活', '机智的监狱生活'],
+            ['信號', '信号'],
+            ['秘密森林', '秘密森林'],
+            ['模範計程車', '模范出租车'],
+            ['黑道律師文森佐', '文森佐'],
+            ['財閥家的小兒子', '财阀家的小儿子'],
+            ['非常律師禹英禑', '非常律师禹英禑'],
+            ['二十五，二十一', '二十五，二十一'],
+            ['那年，我們的夏天', '那年，我们的夏天'],
+            ['海岸村恰恰恰', '海岸村恰恰恰'],
+            ['社內相親', '社内相亲'],
+            ['金秘書為何那樣', '金秘书为何那样'],
+            ['舉重妖精金福珠', '举重妖精金福珠'],
+            ['大力女子都奉順', '大力女子都奉顺'],
+            ['德魯納酒店', '德鲁纳酒店'],
+            ['陽光先生', '阳光先生'],
+            ['二十一', '二十五，二十一'],
+            ['我的大叔', '我的大叔'],
+            ['我的出走日記', '我的解放日志'],
+            ['我們的藍調時光', '我们的蓝调'],
+            ['未生', '未生'],
+            ['夫婦的世界', '夫妻的世界'],
+            ['Penthouse上流戰爭', '顶楼'],
+            ['上流戰爭', '顶楼'],
+            ['屍戰朝鮮', '王国'],
+            ['李屍朝鮮', '王国'],
+            ['甜蜜家園', '甜蜜家园'],
+            ['殭屍校園', '僵尸校园'],
+            ['地獄公使', '地狱公使'],
+            ['D.P：逃兵追緝令', 'D.P：逃兵追缉令'],
+            ['以吾之名', '以吾之名'],
+            ['少年法庭', '少年法庭'],
+            ['毒梟聖徒', '苏里南'],
+            ['殺人者的難堪', '杀人者的难堪'],
+            ['京城怪物', '京城怪物'],
+            ['Moving異能', '超异能族'],
+            ['異能', '超异能族'],
+            ['惡鬼', '恶鬼'],
+            ['災後調查日誌', '灾后调查日志'],
+            ['浪漫醫生金師傅', '浪漫医生金师傅'],
+            ['背著善宰跑', '背着善宰跑'],
+            ['和我老公結婚吧', '和我老公结婚吧'],
+            ['與惡魔有約', '与恶魔有约'],
+            ['無人島的Diva', '无人岛的Diva'],
+            ['歡迎來到王之國', '欢迎来到王之国'],
+            ['壞媽媽', '坏妈妈'],
+            ['浪漫速成班', '浪漫速成班'],
+            ['還魂', '还魂'],
+            ['衣袖紅鑲邊', '衣袖红镶边'],
+            ['哲仁王后', '哲仁王后'],
+            ['戀慕', '恋慕'],
+            ['百日的郎君', '百日的郎君'],
+            ['雲畫的月光', '云画的月光'],
+            ['步步驚心：麗', '步步惊心：丽'],
+            ['擁抱太陽的月亮', '拥抱太阳的月亮'],
+            ['奇皇后', '奇皇后'],
+            ['與神同行', '与神同行'],
+            ['與神同行：最終審判', '与神同行2：因与缘'],
+            ['我只是個計程車司機', '出租车司机'],
+            ['1987：黎明到來的那一天', '1987'],
+            ['正義辯護人', '辩护人'],
+            ['熔爐', '熔炉'],
+            ['素媛', '素媛'],
+            ['希望：為愛重生', '素媛'],
+            ['無聲吶喊', '熔炉'],
+            ['下女的誘惑', '小姐'],
+            ['分手的決心', '分手的决心'],
+            ['原罪犯', '老男孩'],
+            ['復仇三部曲', '老男孩'],
+            ['殺人回憶', '杀人回忆'],
+            ['駭人怪物', '汉江怪物'],
+            ['末日列車', '雪国列车'],
+            ['玉子', '玉子'],
+            ['燃燒烈愛', '燃烧'],
+            ['哭聲', '哭声'],
+            ['追擊者', '追击者'],
+            ['黃海追緝', '黄海'],
+            ['大叔', '孤胆特工'],
+            ['闇黑新世界', '新世界'],
+            ['看見魔鬼', '看见恶魔'],
+            ['雞不可失', '极限职业'],
+            ['極限逃生', '极限逃生'],
+            ['白頭山：半島浩劫', '白头山'],
+            ['南山的部長們', '南山的部长们'],
+            ['首爾之春', '首尔之春'],
+            ['破墓', '破墓'],
+            ['犯罪都市', '犯罪都市'],
+            ['魔女首部曲：誕生', '魔女'],
+            ['靜_E', '贞伊'],
+            ['格殺福順', '杀死福顺'],
+            ['芭蕾復仇曲', '芭蕾复仇曲'],
+            ['半澤直樹', '半泽直树'],
+            ['王牌大律師', '胜者即是正义'],
+            ['Legal High', '胜者即是正义'],
+            ['法醫女王', '非自然死亡'],
+            ['MIU404', '机动搜查队404'],
+            ['月薪嬌妻', '逃避虽可耻但有用'],
+            ['逃避雖可恥但有用', '逃避虽可耻但有用'],
+            ['四重奏', '四重奏'],
+            ['大豆田永久子與三個前夫', '大豆田永久子与三个前夫'],
+            ['重啟人生', '重启人生'],
+            ['初戀', 'First Love 初恋'],
+            ['First Love 初戀', 'First Love 初恋'],
+            ['派遣女醫X', 'Doctor-X'],
+            ['派遣女醫', 'Doctor-X'],
+            ['東京大飯店', '东京大饭店'],
+            ['空中急診英雄', '紧急救命'],
+            ['Code Blue', '紧急救命'],
+            ['白色巨塔', '白色巨塔'],
+            ['仁醫', '仁医'],
+            ['交響情人夢', '交响情人梦'],
+            ['求婚大作戰', '求婚大作战'],
+            ['東大特訓班', '龙樱'],
+            ['極道鮮師', '极道鲜师'],
+            ['花樣男子', '流星花园'],
+            ['流星花園', '流星花园'],
+            ['惡作劇之吻', '一吻定情'],
+            ['長假', '悠长假期'],
+            ['戀愛世代', '恋爱世代'],
+            ['Hero', '律政英雄'],
+            ['律政英雄', '律政英雄'],
+            ['破案天才伽利略', '神探伽利略'],
+            ['偵探伽利略', '神探伽利略'],
+            ['解憂雜貨店', '解忧杂货店'],
+            ['告白', '告白'],
+            ['渴望', '渴望'],
+            ['令人討厭的松子的一生', '被嫌弃的松子的一生'],
+            ['小偷家族', '小偷家族'],
+            ['無人知曉的夏日清晨', '无人知晓'],
+            ['海街日記', '海街日记'],
+            ['比海還深', '比海更深'],
+            ['橫山家之味', '步履不停'],
+            ['我的意外爸爸', '如父如子'],
+            ['怪物', '怪物'],
+            ['在車上', '驾驶我的车'],
+            ['偶然與想像', '偶然与想象'],
+            ['花束般的戀愛', '花束般的恋爱'],
+            ['餘命10年', '余命10年'],
+            ['情書', '情书'],
+            ['四月物語', '四月物语'],
+            ['關於莉莉周的一切', '关于莉莉周的一切'],
+            ['燕尾蝶', '燕尾蝶'],
+            ['送行者：禮儀師的樂章', '入殓师'],
+            ['大逃殺', '大逃杀'],
+            ['死亡筆記本', '死亡笔记'],
+            ['寄生獸', '寄生兽'],
+            ['神劍闖江湖', '浪客剑心'],
+            ['王者天下', '王者天下'],
+            ['哥吉拉-1.0', '哥斯拉-1.0'],
+            ['正宗哥吉拉', '新哥斯拉'],
+            ['七夜怪談', '午夜凶铃'],
+            ['咒怨', '咒怨'],
+            ['一屍到底', '摄影机不要停！'],
+            ['孤獨的美食家', '孤独的美食家'],
+            ['深夜食堂', '深夜食堂'],
+            ['昨日的美食', '昨日的美食'],
+            ['舞伎家的料理人', '舞伎家的料理人'],
+            ['如果30歲還是處男，似乎就能成為魔法師', '到了30岁还是处男，似乎会变成魔法师'],
+            ['大叔的愛', '大叔的爱'],
+            ['凪的新生活', '风平浪静的闲暇'],
+            ['輪到你了', '轮到你了'],
+            ['3年A班', '3年A班'],
+            ['勿說是推理', '勿言推理'],
+            ['ミステリと言う勿れ', '勿言推理'],
+            ['VIVANT', 'VIVANT'],
+            ['極度不妥！', '不合适也要有个限度！'],
+            ['地面師', '地面师'],
+            ['相撲聖域', '相扑圣域'],
+            ['全裸監督', '全裸导演'],
+            ['東京卍復仇者', '东京复仇者'],
+            ['城市獵人', '城市猎人'],
+            ['讓子彈飛', '让子弹飞'],
+            ['無間道', '无间道'],
+            ['功夫', '功夫'],
+            ['少林足球', '少林足球'],
+            ['食神', '食神'],
+            ['喜劇之王', '喜剧之王'],
+            ['大話西遊', '大话西游'],
+            ['西遊記第壹佰零壹回之月光寶盒', '大话西游之月光宝盒'],
+            ['西遊記大結局之仙履奇緣', '大话西游之大圣娶亲'],
+            ['唐伯虎點秋香', '唐伯虎点秋香'],
+            ['九品芝麻官', '九品芝麻官'],
+            ['國產凌凌漆', '国产凌凌漆'],
+            ['賭神', '赌神'],
+            ['賭聖', '赌圣'],
+            ['賭俠', '赌侠'],
+            ['英雄本色', '英雄本色'],
+            ['倩女幽魂', '倩女幽魂'],
+            ['霸王別姬', '霸王别姬'],
+            ['活著', '活着'],
+            ['大紅燈籠高高掛', '大红灯笼高高挂'],
+            ['花樣年華', '花样年华'],
+            ['重慶森林', '重庆森林'],
+            ['春光乍洩', '春光乍泄'],
+            ['一代宗師', '一代宗师'],
+            ['葉問', '叶问'],
+            ['寒戰', '寒战'],
+            ['竊聽風雲', '窃听风云'],
+            ['門徒', '门徒'],
+            ['掃毒', '扫毒'],
+            ['拆彈專家', '拆弹专家'],
+            ['怒火', '怒火·重案'],
+            ['九龍城寨之圍城', '九龙城寨之围城'],
+            ['周處除三害', '周处除三害'],
+            ['關於我和鬼變成家人的那件事', '关于我和鬼变成家人的那件事'],
+            ['想見你', '想见你'],
+            ['華燈初上', '华灯初上'],
+            ['我們與惡的距離', '我们与恶的距离'],
+            ['俗女養成記', '俗女养成记'],
+            ['茶金', '茶金'],
+            ['一把青', '一把青'],
+            ['火神的眼淚', '火神的眼泪'],
+            ['八尺門的辯護人', '八尺门的辩护人'],
+            ['不夠善良的我們', '不够善良的我们'],
+            ['影后', '影后'],
+            ['我的少女時代', '我的少女时代'],
+            ['那些年，我們一起追的女孩', '那些年，我们一起追的女孩'],
+            ['海角七號', '海角七号'],
+            ['賽德克·巴萊', '赛德克·巴莱'],
+            ['陽光普照', '阳光普照'],
+            ['大佛普拉斯', '大佛普拉斯'],
+            ['同學麥娜絲', '同学麦娜丝'],
+            ['血觀音', '血观音'],
+            ['當男人戀愛時', '当男人恋爱时'],
+            ['咒', '咒'],
+            ['紅衣小女孩', '红衣小女孩'],
+            ['返校', '返校'],
+            ['悲情城市', '悲情城市'],
+            ['牯嶺街少年殺人事件', '牯岭街少年杀人事件'],
+            ['一一', '一一'],
+            ['甄嬛傳', '后宫·甄嬛传'],
+            ['如懿傳', '如懿传'],
+            ['延禧攻略', '延禧攻略'],
+            ['琅琊榜', '琅琊榜'],
+            ['偽裝者', '伪装者'],
+            ['慶餘年', '庆余年'],
+            ['贅婿', '赘婿'],
+            ['雪中悍刀行', '雪中悍刀行'],
+            ['三體', '三体'],
+            ['繁花', '繁花'],
+            ['漫長的季節', '漫长的季节'],
+            ['隱秘的角落', '隐秘的角落'],
+            ['沉默的真相', '沉默的真相'],
+            ['白夜追兇', '白夜追凶'],
+            ['狂飆', '狂飙'],
+            ['開端', '开端'],
+            ['去有風的地方', '去有风的地方'],
+            ['以家人之名', '以家人之名'],
+            ['偷偷藏不住', '偷偷藏不住'],
+            ['當我飛奔向你', '当我飞奔向你'],
+            ['蒼蘭訣', '苍兰诀'],
+            ['長相思', '长相思'],
+            ['墨雨雲間', '墨雨云间'],
+            ['玫瑰的故事', '玫瑰的故事'],
+            ['與鳳行', '与凤行'],
+            ['蓮花樓', '莲花楼'],
+            ['永夜星河', '永夜星河'],
+            ['珠簾玉幕', '珠帘玉幕'],
+            ['九重紫', '九重紫'],
+            ['大奉打更人', '大奉打更人'],
+            ['國色芳華', '国色芳华'],
+            ['難哄', '难哄']
+        ];
+
+        function resolveAliasKeywords(rawInput) {
+            const trimmed = (rawInput || '').trim();
+            if (!trimmed) return [];
+            const normInput = trimmed.toLowerCase().replace(/[\s：:·\-_]/g, '');
+            const aliases = new Set();
+
+            TW_CN_TITLE_ALIASES.forEach(([tw, cn]) => {
+                const normTw = tw.toLowerCase().replace(/[\s：:·\-_]/g, '');
+                const normCn = cn.toLowerCase().replace(/[\s：:·\-_]/g, '');
+                if (normInput === normTw || normTw.includes(normInput) || normInput.includes(normTw)) {
+                    aliases.add(cn);
+                }
+                if (normInput === normCn || normCn.includes(normInput) || normInput.includes(normCn)) {
+                    aliases.add(tw);
+                }
+            });
+
+            return Array.from(aliases);
+        }
         let lastSkipTime = 0;
         let controlsHideTimer = null;
         let videoBrightness = 1.0;
 
+        // ==========================================
+        // 安全音量管理 (0% ~ 100%，不超過 100% 避免破音失真)
+        // ==========================================
         let uiVolumeLevel = 1.0;
         let previousVolumeLevel = 1.0;
         let isAppMuted = false;
@@ -1019,128 +1913,9 @@
         let isPseudoFullscreen = false;
         let savedScrollY = 0;
 
-        // 全自動換源防無窮循環標記
-        let isAutoFailingOver = false;
-
         let converter = null;
         if (window.OpenCC) {
             converter = OpenCC.Converter({ from: 'tw', to: 'cn' });
-        }
-
-        // ==========================================
-        // 方案二：本地精選台陸譯名雙向字典 (0 毫秒秒查)
-        // ==========================================
-        const LOCAL_TITLE_DICT = {
-            "神隱少女": "千与千寻", "霍爾的移動城堡": "哈尔的移动城堡", "龍貓": "龙猫", "天空之城": "天空之城",
-            "魔法公主": "幽灵公主", "風之谷": "风之谷", "魔女宅急便": "魔女宅急便", "心之谷": "侧耳倾听",
-            "貓的報恩", "猫的报恩", "借物少女艾莉緹": "借东西的小人阿莉埃蒂", "輝耀姬物語": "辉夜姬物语",
-            "風起": "起风了", "來自紅花坂": "虞美人盛开的山坡", "蒼鷺與少年": "你想活出怎样的人生",
-            "崖上的波妞": "悬崖上的金鱼姬", "紅豬": "红猪", "螢火蟲之墓": "萤火虫之墓",
-            "你的名字": "你的名字", "天氣之子": "天气之子", "鈴芽之旅": "铃芽之旅", "鈴芽的門鎖": "铃芽户缔",
-            "言葉之庭": "言叶之庭", "秒速5公分": "秒速5厘米", "跳躍吧！時空少女": "穿越时空的少女",
-            "夏日大作戰": "夏日大作战", "狼的孩子雨和雪": "狼的孩子雨和雪", "怪物的孩子": "怪物的孩子",
-            "未來的未來": "未来的未来", "龍與雀斑公主": "龙与雀斑公主", "聲之形": "声之形",
-            "莉茲與青鳥": "利兹与青鸟", "紫羅蘭永恆花園電影版": "紫罗兰永恒花园电影版",
-            "鬼滅之刃": "鬼灭之刃", "咒術迴戰": "咒术回战", "間諜家家酒": "间谍过家家",
-            "進擊的巨人": "进击的巨人", "我推的孩子": "我推的孩子", "葬送的芙莉蓮": "葬送的芙莉莲",
-            "孤獨搖滾！": "孤独摇滚", "鏈鋸人": "电锯人", "排球少年！！": "排球少年",
-            "藍色監獄": "蓝色监狱", "紫羅蘭永恆花園": "紫罗兰永恒花园", "暗殺教室": "暗杀教室",
-            "鋼之鍊金術師": "钢之炼金术师", "刀劍神域": "刀剑神域", "一拳超人": "一拳超人",
-            "我的英雄學院": "我的英雄学院", "怪獸8號": "怪兽8号", "膽大黨": "超自然武装当哒当",
-            "迷宮飯": "迷宫饭", "航海王": "海贼王", "火影忍者": "火影忍者", "死神": "境·界",
-            "腦筋急轉彎": "头脑特工队", "腦筋急轉彎2": "头脑特工队2", "玩具總動員": "玩具总动员",
-            "海底總動員": "海底总动员", "超人特攻隊": "超人总动员", "怪獸電力公司": "怪兽电力公司",
-            "可可夜總會": "寻梦环游记", "動物方城市": "疯狂动物城", "冰雪奇緣": "冰雪奇缘",
-            "天外奇蹟": "飞屋环游记", "料理鼠王": "美食总动员", "瓦力": "机器人总动员",
-            "大英雄天團": "超能陆战队", "勇敢傳說": "勇敢传说", "海洋奇緣": "海洋奇缘",
-            "魔法滿屋": "魔法满屋", "靈魂急轉彎": "心灵奇旅", "汽車總動員": "赛车总动员",
-            "復仇者聯盟": "复仇者联盟", "星際異攻隊": "银河护卫队", "奇異博士": "奇异博士",
-            "美國隊長": "美国队长", "鋼鐵人": "钢铁侠", "雷神索爾": "雷神",
-            "蜘蛛人": "蜘蛛侠", "死侍與金鋼狼": "死侍与金刚狼", "水行俠": "海王",
-            "神力女超人": "神奇女侠", "閃電俠": "闪电侠", "黑暗騎士": "黑暗骑士",
-            "不可能的任務": "碟中谍", "玩命關頭": "速度与激情", "捍衛戰士": "壮志凌云",
-            "捍衛戰士：獨行俠": "壮志凌云2：独行侠", "天能": "信条", "全面啟動": "盗梦空间",
-            "星際效應": "星际穿越", "奧本海默": "奥本海默", "沙丘": "沙丘", "沙丘2": "沙丘2",
-            "阿凡達": "阿凡达", "阿凡達：水之道": "阿凡达：水之道", "魔戒": "指环王",
-            "哈利波特": "哈利·波特", "駭客任務": "黑客帝国", "侏羅紀公園": "侏罗纪公园",
-            "神鬼奇航": "加勒比海盗", "變形金剛": "变形金刚", "樂來越愛你": "爱乐之城",
-            "怪奇物語": "怪奇物语", "絕命毒師": "绝命毒师", "風騷律師": "风骚律师",
-            "權力的遊戲": "权力的游戏", "龍之家族": "龙之家族", "黑袍糾察隊": "黑袍纠察队",
-            "星期三": "星期三", "后翼棄兵": "女王的棋局", "紙房子": "纸钞屋",
-            "最後生還者": "最后生还者", "黑錢勝地": "黑钱胜地", "毒梟": "毒枭",
-            "性愛自修室": "性爱自修室", "大熊餐廳": "熊家餐馆", "三體": "三体",
-            "魷魚遊戲": "鱿鱼游戏", "黑暗榮耀": "黑暗荣耀", "非常律師禹英禑": "非常律师禹英禑",
-            "愛的迫降": "爱的迫降", "梨泰院Class": "梨泰院Class", "機智醫生生活": "机智的医生生活",
-            "寄生上流": "寄生虫", "屍速列車": "釜山行", "下女的誘惑": "小姐",
-            "請回答1988": "请回答1988", "太陽的後裔": "太阳的后裔", "孤單又燦爛的神－鬼怪": "鬼怪",
-            "信號": "信号", "德魯納酒店": "德鲁纳酒店", "黑道律師文森佐": "文森佐",
-            "財閥家的小兒子": "财阀家的小儿子", "MOVING 異能": "超异能族", "淚之女王": "泪之女王",
-            "背著善宰跑": "背着善宰跑", "低谷醫生": "低谷医生", "和我老公結婚吧": "请和我的老公结婚",
-            "半澤直樹": "半泽直树", "月薪嬌妻": "逃避虽可耻但有用", "First Love 初戀": "初恋",
-            "重啟人生": "重启人生", "法醫女王": "非自然自然死亡", "MIU404": "MIU404",
-            "後宮甄嬛傳": "甄嬛传", "瑯琊榜": "琅琊榜", "狂飆": "狂飙",
-            "漫長的季節": "漫长的季节", "慶餘年": "庆余年", "繁花": "繁花",
-            "隱秘的角落": "隐秘的角落", "想見你": "想见你", "我們與惡的距離": "我们与恶的距离"
-        };
-
-        // ==========================================
-        // 方案一：Wikidata 全球開源別名即時解析引擎 (帶 1.6 秒超時保護與本機快取)
-        // ==========================================
-        async function fetchWikidataAlias(queryTitle) {
-            const cacheKey = `tvbox_wiki_alias_${queryTitle}`;
-            const cached = localStorage.getItem(cacheKey);
-            if (cached) return cached;
-
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 1600);
-
-            try {
-                const searchUrl = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(queryTitle)}&language=zh-tw&format=json&origin=*&limit=1`;
-                const res = await fetch(searchUrl, { signal: controller.signal });
-                const data = await res.json();
-                clearTimeout(timeoutId);
-
-                if (data.search && data.search.length > 0) {
-                    const entityId = data.search[0].id;
-                    const entityUrl = `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${entityId}&props=labels|aliases&languages=zh-cn|zh-hans&format=json&origin=*`;
-                    const entRes = await fetch(entityUrl);
-                    const entData = await entRes.json();
-                    const ent = entData.entities && entData.entities[entityId];
-                    if (ent) {
-                        let alias = (ent.labels && ent.labels['zh-cn']) ? ent.labels['zh-cn'].value : '';
-                        if (!alias && ent.labels && ent.labels['zh-hans']) {
-                            alias = ent.labels['zh-hans'].value;
-                        }
-                        if (alias) {
-                            localStorage.setItem(cacheKey, alias);
-                            return alias;
-                        }
-                    }
-                }
-            } catch (e) {
-                clearTimeout(timeoutId);
-            }
-            return '';
-        }
-
-        async function getDualSearchQueries(rawTitle) {
-            const list = [rawTitle];
-            let converted = rawTitle;
-            if (converter) {
-                try { converted = await converter(rawTitle); } catch (e) {}
-            }
-            if (converted && !list.includes(converted)) list.push(converted);
-
-            if (LOCAL_TITLE_DICT[rawTitle]) {
-                const dictVal = LOCAL_TITLE_DICT[rawTitle];
-                if (!list.includes(dictVal)) list.push(dictVal);
-            }
-
-            const wikiAlias = await fetchWikidataAlias(rawTitle);
-            if (wikiAlias && !list.includes(wikiAlias)) {
-                list.push(wikiAlias);
-            }
-            return list;
         }
 
         function isIOSDevice() {
@@ -1170,6 +1945,9 @@
             return isAppMuted ? 0 : uiVolumeLevel;
         }
 
+        // ==========================================
+        // 語音搜尋功能（支援手機版與電腦版一鍵語音輸入）
+        // ==========================================
         let speechRecognition = null;
         let isVoiceListening = false;
 
@@ -1209,6 +1987,7 @@
                 };
 
                 speechRecognition.onerror = (event) => {
+                    console.warn('語音辨識錯誤:', event.error);
                     if (event.error === 'not-allowed') {
                         alert('請允許瀏覽器使用麥克風權限，才能使用語音搜尋。');
                     }
@@ -1229,6 +2008,9 @@
             }
         }
 
+        // ==========================================
+        // 電腦版 / 手機版切換管理
+        // ==========================================
         function applyDeviceMode(mobile) {
             isMobileMode = mobile;
             if (mobile) {
@@ -1259,10 +2041,16 @@
             }
         })();
 
+        // ==========================================
+        // OCR 文字辨識引擎初始化
+        // ==========================================
         async function initOcr() {
             try {
                 ocrWorker = await Tesseract.createWorker('chi_sim+eng');
-            } catch (e) {}
+                console.log('✅ OCR 文字辨識引擎載入完成！');
+            } catch (e) {
+                console.warn('OCR 初始化延遲:', e);
+            }
         }
         initOcr();
 
@@ -1330,6 +2118,9 @@
 
         applySliderColor(1.0);
 
+        // ==========================================
+        // 全螢幕系統
+        // ==========================================
         function isFullscreenActive() {
             return !!(document.fullscreenElement || document.webkitFullscreenElement || isPseudoFullscreen);
         }
@@ -1473,12 +2264,16 @@
         });
 
         // ==========================================
-        // 手機版觸控手勢引擎（明確豁免覆蓋按鈕與面板，修復 iPhone 全螢幕點不到換源）
+        // 手機版全方位觸控手勢引擎（保持原設計不變）
+        // - 雙擊左/右：倒退 10 秒 / 快轉 10 秒
+        // - 左側上下滑動：調整亮度增加 / 減少
+        // - 右側上下滑動：調整音量增加 / 減少 (0% ~ 100%)
+        // - 左右水平滑動：控制進度條增加 / 減少
         // ==========================================
         let touchStartX = 0;
         let touchStartY = 0;
         let touchStartTime = 0;
-        let touchGestureType = null;
+        let touchGestureType = null; // 'brightness' | 'volume' | 'seek' | null
         let initialGestureVal = 0;
         let targetSeekTime = 0;
         let osdHideTimer = null;
@@ -1529,16 +2324,11 @@
             };
         }
 
-        function isClickingInteractiveElement(target) {
-            return target.closest('.custom-controls') || 
-                   target.closest('.video-top-bar') || 
-                   target.closest('.player-loading-overlay') || 
-                   target.closest('.alt-sources-panel');
-        }
-
         playerBox.addEventListener('touchstart', (e) => {
             if (!isMobileMode || e.touches.length !== 1) return;
-            if (isClickingInteractiveElement(e.target)) return;
+            if (e.target.closest('.custom-controls') || e.target.closest('.video-top-bar') || e.target.closest('.player-loading-overlay')) {
+                return;
+            }
 
             const coords = getNormalizedTouchCoords(e.touches[0]);
             touchStartX = coords.x;
@@ -1549,7 +2339,9 @@
 
         playerBox.addEventListener('touchmove', (e) => {
             if (!isMobileMode || e.touches.length !== 1) return;
-            if (isClickingInteractiveElement(e.target)) return;
+            if (e.target.closest('.custom-controls') || e.target.closest('.video-top-bar') || e.target.closest('.player-loading-overlay')) {
+                return;
+            }
 
             e.preventDefault();
 
@@ -1565,7 +2357,7 @@
                         initialGestureVal = videoBrightness;
                     } else {
                         touchGestureType = 'volume';
-                        initialGestureVal = getEffectiveLevel();
+                        initialGestureVal = getEffectiveLevel(); // 0.0 ~ 1.0
                     }
                 } else {
                     if (video.duration && !isNaN(video.duration)) {
@@ -1609,7 +2401,9 @@
 
         playerBox.addEventListener('touchend', (e) => {
             if (!isMobileMode) return;
-            if (isClickingInteractiveElement(e.target)) return;
+            if (e.target.closest('.custom-controls') || e.target.closest('.video-top-bar') || e.target.closest('.player-loading-overlay')) {
+                return;
+            }
 
             if (touchGestureType) {
                 if (touchGestureType === 'seek' && video.duration) {
@@ -1656,6 +2450,7 @@
             }
         });
 
+        // 電腦版滑鼠單擊播放/暫停、雙擊左/右快進快退
         let clickTimer = null;
         let clickCount = 0;
 
@@ -1686,6 +2481,9 @@
             }
         });
 
+        // ==========================================
+        // 時間格式化與進度條控制
+        // ==========================================
         function formatTime(s) {
             if (isNaN(s)) return '00:00';
             const hrs = Math.floor(s / 3600);
@@ -1798,16 +2596,20 @@
             setTimeout(() => { el.classList.remove('active'); }, 450);
         }
 
+        // ==========================================
+        // 澳門新葡京娛樂城 廣告文字偵測 (統一快進 26 秒)
+        // ==========================================
         function triggerAdSkip(detectedText = '') {
             const now = Date.now();
             if (now - lastSkipTime < 3500) return;
             lastSkipTime = now;
 
-            let target = video.currentTime + 17;
+            console.log(`%c[精準命中] 識別到廣告文字:「${detectedText}」，立即快進 26 秒！`, 'color:#00ff00; font-size:14px; font-weight:bold;');
+            let target = video.currentTime + 26;
             if (video.duration && target > video.duration) target = video.duration;
             video.currentTime = target;
 
-            skipToast.textContent = `⚡ 識別到「澳門新葡京」，已自動跳過 17 秒`;
+            skipToast.textContent = `⚡ 識別到「澳門新葡京」，已自動跳過 26 秒`;
             skipToast.style.display = 'block';
             setTimeout(() => { skipToast.style.display = 'none'; }, 2500);
         }
@@ -1863,6 +2665,9 @@
             }
         }, 800);
 
+        // ==========================================
+        // 電腦版鍵盤快捷鍵
+        // ==========================================
         window.addEventListener('keydown', (e) => {
             if (document.activeElement === document.getElementById('search-input')) return;
 
@@ -1900,26 +2705,53 @@
             }
         });
 
-        function getCurrentSiteName() {
-            const siteSelect = document.getElementById('site-select');
-            if (siteSelect && siteSelect.selectedIndex >= 0 && siteSelect.options[siteSelect.selectedIndex]) {
-                const raw = siteSelect.options[siteSelect.selectedIndex].textContent;
-                return raw.replace(/\(爬蟲\)/g, '').trim();
+        // ==========================================
+        // 觀看紀錄與收藏管理
+        // ==========================================
+        function syncCurrentProgress(currentTime) {
+            if (!currentVod || !currentVod.vod_name) return;
+
+            let favs = getFavorites();
+            let favIdx = favs.findIndex(f => f.vod_name === currentVod.vod_name);
+            if (favIdx !== -1) {
+                favs[favIdx].last_ep_name = currentEpName;
+                favs[favIdx].last_playback_time = currentTime;
+                favs[favIdx].last_update = Date.now();
+                localStorage.setItem('tvbox_favorites', JSON.stringify(favs));
             }
-            return '精選站點';
+
+            let hist = getWatchHistory();
+            let histIdx = hist.findIndex(h => h.vod_name === currentVod.vod_name);
+            if (histIdx !== -1) {
+                hist[histIdx].ep_name = currentEpName;
+                hist[histIdx].playback_time = currentTime;
+                hist[histIdx].time = Date.now();
+                localStorage.setItem('tvbox_history', JSON.stringify(hist));
+            }
         }
 
         function getWatchHistory() {
             try { return JSON.parse(localStorage.getItem('tvbox_history') || '[]'); } catch (e) { return []; }
         }
 
+        function getSiteNameByApi(apiUrl) {
+            if (!apiUrl) return '';
+            const norm = apiUrl.replace(/\/$/, '');
+            const localMatch = (localPresetSites || []).find(s => s && s.api && s.api.replace(/\/$/, '') === norm);
+            if (localMatch && localMatch.name) return localMatch.name.replace(/\s*\(直鏈\)/g, '');
+            const sel = document.getElementById('site-select');
+            if (sel) {
+                const opt = Array.from(sel.options).find(o => o.value === apiUrl);
+                if (opt) return opt.textContent.replace(/\s*\(爬蟲\)/g, '').trim();
+            }
+            return '';
+        }
+
         function saveWatchHistory(vod, epName, streamUrl, playbackTime = 0) {
             if (!vod || !vod.vod_name) return;
             let list = getWatchHistory();
             list = list.filter(item => item.vod_name !== vod.vod_name);
-
-            const siteApi = document.getElementById('site-select').value;
-            const siteName = getCurrentSiteName();
+            const curApi = document.getElementById('site-select').value;
 
             list.unshift({
                 vod_id: vod.vod_id,
@@ -1929,8 +2761,8 @@
                 ep_name: epName,
                 stream_url: streamUrl,
                 playback_time: playbackTime,
-                site_api: siteApi,
-                site_name: siteName,
+                site_api: curApi,
+                site_name: getSiteNameByApi(curApi),
                 time: Date.now()
             });
 
@@ -1956,15 +2788,11 @@
                 const card = document.createElement('div');
                 card.className = 'history-card';
                 const progressText = formatProgressChinese(item.playback_time || 0, item.ep_name);
-                
-                let siteLabel = item.site_name;
-                if (!siteLabel) {
-                    const found = (localPresetSites || []).find(s => s && s.api === item.site_api);
-                    siteLabel = found ? found.name : '精選站';
-                }
+                const sourceLabel = item.site_name || getSiteNameByApi(item.site_api);
+                const sourceBadgeHtml = sourceLabel ? `<span class="history-source-tag" title="來源：${sourceLabel}">${sourceLabel}</span>` : '';
 
                 card.innerHTML = `
-                    <div class="history-site-tag" title="來源：${siteLabel}">${siteLabel}</div>
+                    ${sourceBadgeHtml}
                     <button class="history-del-btn" title="刪除此紀錄" onclick="deleteHistoryItem(event, ${idx})">✕</button>
                     <div class="history-thumb-wrap">
                         <img class="history-thumb" src="${item.vod_pic || ''}" onerror="this.src='https://placehold.co/185x105?text=No+Cover'" />
@@ -2043,7 +2871,6 @@
                     vod_remarks: currentVod.vod_remarks,
                     vod_play_url: currentVod.vod_play_url,
                     site_api: document.getElementById('site-select').value,
-                    site_name: getCurrentSiteName(),
                     last_ep_name: currentEpName,
                     last_playback_time: video.currentTime || 0,
                     last_update: Date.now()
@@ -2123,6 +2950,9 @@
             });
         }
 
+        // ==========================================
+        // 分類與設定檔解析
+        // ==========================================
         function renderCategoryButtons(classes) {
             if (!Array.isArray(classes) || classes.length === 0) return;
             currentLoadedClasses = classes;
@@ -2150,7 +2980,100 @@
                 if (data.class && Array.isArray(data.class) && data.class.length > 0) {
                     renderCategoryButtons(data.class);
                 }
+            } catch (e) {
+                console.log('無法直接拉取分類清單，改由影片資料提煉');
+            }
+        }
+
+
+        // ==========================================
+        // 方案一：Wikidata 全球開源資料庫即時抓取兩岸譯名（附本機快取與 1.5 秒超時保護）
+        // ==========================================
+        function getWikidataAliasCache() {
+            try { return JSON.parse(localStorage.getItem('tvbox_wikidata_aliases') || '{}'); } catch (e) { return {}; }
+        }
+
+        function saveWikidataAliasCache(cacheObj) {
+            try {
+                const keys = Object.keys(cacheObj);
+                if (keys.length > 300) {
+                    delete cacheObj[keys[0]];
+                }
+                localStorage.setItem('tvbox_wikidata_aliases', JSON.stringify(cacheObj));
             } catch (e) {}
+        }
+
+        async function fetchWikidataAliases(rawTitle) {
+            const queryText = (rawTitle || '').trim();
+            if (!queryText || queryText.length < 2) return [];
+
+            // 1. 先檢查本機 Wikidata 快取（0 毫秒秒回）
+            const cache = getWikidataAliasCache();
+            if (Array.isArray(cache[queryText])) {
+                return cache[queryText];
+            }
+
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), 1600);
+
+            try {
+                // 2. 向 Wikidata 公開 API 搜尋條目 Q 碼（支援跨域 origin=*，不消耗後端流量）
+                const searchUrl = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(queryText)}&language=zh-tw&uselang=zh-tw&type=item&limit=3&format=json&origin=*`;
+                const sRes = await fetch(searchUrl, { signal: controller.signal });
+                const sData = await sRes.json();
+                const items = sData.search || [];
+                if (items.length === 0) {
+                    clearTimeout(timer);
+                    return [];
+                }
+
+                // 優先挑選描述中包含電影、電視、動畫、漫畫、劇集等影視關鍵字的 Q 碼
+                const mediaRegex = /電影|电影|電視|电视|動畫|动画|劇集|剧集|影集|漫畫|漫画|film|series|anime|drama|television/i;
+                const sortedItems = [...items].sort((a, b) => {
+                    const aScore = mediaRegex.test(a.description || '') ? 1 : 0;
+                    const bScore = mediaRegex.test(b.description || '') ? 1 : 0;
+                    return bScore - aScore;
+                });
+
+                const targetQids = sortedItems.slice(0, 2).map(it => it.id).join('|');
+
+                // 3. 取得該 Q 碼的中國大陸簡體名稱（zh-cn）與別名（aliases）
+                const entityUrl = `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${encodeURIComponent(targetQids)}&props=labels|aliases&languages=zh-cn|zh-hans|zh-tw|zh-hk&format=json&origin=*`;
+                const eRes = await fetch(entityUrl, { signal: controller.signal });
+                const eData = await eRes.json();
+                clearTimeout(timer);
+
+                const foundAliases = new Set();
+                const entities = eData.entities || {};
+                Object.values(entities).forEach(ent => {
+                    if (ent.labels) {
+                        ['zh-cn', 'zh-hans', 'zh-tw', 'zh-hk'].forEach(lang => {
+                            if (ent.labels[lang] && ent.labels[lang].value) {
+                                foundAliases.add(ent.labels[lang].value.trim());
+                            }
+                        });
+                    }
+                    if (ent.aliases) {
+                        ['zh-cn', 'zh-hans'].forEach(lang => {
+                            if (Array.isArray(ent.aliases[lang])) {
+                                ent.aliases[lang].slice(0, 2).forEach(a => {
+                                    if (a && a.value && a.value.length <= 24) {
+                                        foundAliases.add(a.value.trim());
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
+
+                const resultList = Array.from(foundAliases).filter(v => v && v !== queryText);
+                cache[queryText] = resultList;
+                saveWikidataAliasCache(cache);
+                return resultList;
+            } catch (err) {
+                clearTimeout(timer);
+                return [];
+            }
         }
 
         function changeCategory(typeId, btn) {
@@ -2159,7 +3082,10 @@
             btn.classList.add('active');
             currentTypeId = typeId;
             currentSearchWord = '';
+            currentRawSearchWord = '';
             currentPage = 1;
+            totalPages = 0;
+            isLastPageReached = false;
             fetchVideos();
         }
 
@@ -2253,6 +3179,7 @@
                     return s.api.startsWith('http');
                 });
 
+                // 動態將使用者上傳設定檔中的直鏈站點（localPresetSites）合併進線路站點清單（依 API 網址去重）
                 let mergedSites = [...remoteValidSites];
                 if (Array.isArray(localPresetSites) && localPresetSites.length > 0) {
                     const existingApis = new Set(mergedSites.map(s => s.api.replace(/\/$/, '')));
@@ -2312,8 +3239,11 @@
 
         function onSiteChange() {
             currentPage = 1;
+            totalPages = 0;
+            isLastPageReached = false;
             currentTypeId = '';
             currentSearchWord = '';
+            currentRawSearchWord = '';
             isShowingFavList = false;
             currentLoadedClasses = [];
 
@@ -2351,93 +3281,191 @@
             input.value = '';
             toggleClearSearchBtn();
             input.focus();
-            if (currentSearchWord) {
+            if (currentSearchWord || currentRawSearchWord) {
                 currentSearchWord = '';
+                currentRawSearchWord = '';
                 currentPage = 1;
+                totalPages = 0;
+                isLastPageReached = false;
                 fetchVideos(false);
             }
         }
 
-        // ==========================================
-        // 雙引擎智能搜尋（本地字典 + Wikidata 即時解析）
-        // ==========================================
         async function doSearch() {
             let rawWord = document.getElementById('search-input').value.trim();
             if (!rawWord) return alert('請輸入搜尋關鍵字');
 
+            // 手機版搜尋時自動收起虛擬鍵盤，避免鍵盤遮擋下方搜尋結果
             document.getElementById('search-input').blur();
 
-            const queries = await getDualSearchQueries(rawWord);
-            currentSearchWord = queries[0];
+            currentRawSearchWord = rawWord;
+            if (converter) {
+                currentSearchWord = await converter(rawWord);
+            } else {
+                currentSearchWord = rawWord;
+            }
 
             isShowingFavList = false;
             currentTypeId = '';
             currentPage = 1;
-            await fetchVideos(true, queries);
+            totalPages = 0;
+            isLastPageReached = false;
+            await fetchVideos(true);
+        }
+
+        function updatePaginationUI() {
+            const pagEl = document.getElementById('pagination');
+            const firstBtn = document.getElementById('btn-first-page');
+            const prevBtn = document.getElementById('btn-prev-page');
+            const nextBtn = document.getElementById('btn-next-page');
+            const indicator = document.getElementById('page-indicator');
+            const endHint = document.getElementById('page-end-hint');
+
+            if (!pagEl) return;
+            pagEl.style.display = 'flex';
+
+            if (firstBtn) firstBtn.style.display = (currentPage > 1) ? 'inline-block' : 'none';
+            if (prevBtn) prevBtn.disabled = (currentPage <= 1);
+
+            const reachedEnd = isLastPageReached || (totalPages > 0 && currentPage >= totalPages);
+            if (nextBtn) nextBtn.disabled = reachedEnd;
+
+            if (indicator) {
+                indicator.textContent = (totalPages > 0)
+                    ? `第 ${currentPage} / ${totalPages} 頁`
+                    : `第 ${currentPage} 頁`;
+            }
+            if (endHint) {
+                if (reachedEnd) {
+                    endHint.classList.add('show');
+                } else {
+                    endHint.classList.remove('show');
+                }
+            }
+        }
+
+        function goToFirstPage() {
+            if (currentPage <= 1) return;
+            currentPage = 1;
+            isLastPageReached = false;
+            fetchVideos(false, true);
+            const targetEl = document.getElementById('category-row') || document.getElementById('movie-grid');
+            if (targetEl) targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
         function changePage(delta) {
-            if (currentPage + delta < 1) return;
-            if (maxPage > 1 && currentPage + delta > maxPage) {
-                skipToast.textContent = `⚠️ 已到達最後一頁 (第 ${maxPage} 頁)`;
-                skipToast.style.display = 'block';
-                setTimeout(() => { skipToast.style.display = 'none'; }, 2000);
-                return;
-            }
+            if (delta < 0 && currentPage <= 1) return;
+            if (delta > 0 && (isLastPageReached || (totalPages > 0 && currentPage >= totalPages))) return;
+
+            const prevPage = currentPage;
             currentPage += delta;
-            fetchVideos();
-            window.scrollTo({ top: isMobileMode ? 350 : 450, behavior: 'smooth' });
+            if (delta < 0) isLastPageReached = false;
+
+            fetchVideos(false, true, prevPage);
+            const targetEl = document.getElementById('category-row') || document.getElementById('movie-grid');
+            if (targetEl) targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
-        async function fetchVideos(scrollToResults = false, multiQueries = null) {
+        async function fetchVideos(scrollToResults = false, isPageTurn = false, fallbackPage = 1) {
             const api = document.getElementById('site-select').value;
             if (!api) return;
 
             const grid = document.getElementById('movie-grid');
-            grid.innerHTML = '<div style="color:#aaa;">正在載入片庫中...</div>';
+            const prevGridHtml = grid.innerHTML;
+            const prevPaginationDisplay = document.getElementById('pagination').style.display;
 
-            let words = multiQueries || [currentSearchWord];
-            words = words.filter(Boolean);
+            // 翻頁時保留原畫面並呈現微半透明載入感，避免畫面閃白；切換分類或新搜尋才顯示載入文字
+            if (isPageTurn && currentPage > 1) {
+                grid.style.opacity = '0.55';
+            } else {
+                grid.style.opacity = '1';
+                grid.innerHTML = '<div style="color:#aaa;">正在載入片庫中...</div>';
+            }
+
+            const fetchCmsPage = async (keyword) => {
+                let q = `api=${encodeURIComponent(api)}&pg=${currentPage}`;
+                if (currentTypeId) q += `&t=${encodeURIComponent(currentTypeId)}`;
+                if (keyword) q += `&wd=${encodeURIComponent(keyword)}`;
+                const r = await fetch(`/api/cms/list?${q}`);
+                return await r.json();
+            };
 
             try {
-                let combinedList = [];
-                let seenVodIds = new Set();
-                let lastPageCount = 1;
+                let data = await fetchCmsPage(currentSearchWord);
+                let list = data.list || [];
 
-                for (const w of (words.length ? words : [''])) {
-                    let query = `api=${encodeURIComponent(api)}&pg=${currentPage}`;
-                    if (currentTypeId) query += `&t=${encodeURIComponent(currentTypeId)}`;
-                    if (w) query += `&wd=${encodeURIComponent(w)}`;
+                // 若為搜尋狀態，啟動雙引擎別名解析：
+                // 引擎 A（方案二）：本地 500+ 精選台陸譯名庫（0 毫秒秒查）
+                // 引擎 B（方案一）：若本地字典未收錄，自動透過 Wikidata 線上抓出大陸正式譯名（附快取與 1.6s 超時保護）
+                if (currentSearchWord && currentPage === 1) {
+                    const rawInput = currentRawSearchWord || currentSearchWord;
+                    let aliasList = resolveAliasKeywords(rawInput);
 
-                    const res = await fetch(`/api/cms/list?${query}`);
-                    const data = await res.json();
-
-                    if (data.pagecount) lastPageCount = Math.max(lastPageCount, parseInt(data.pagecount, 10));
-
-                    if (data.class && Array.isArray(data.class) && data.class.length > 0) {
-                        renderCategoryButtons(data.class);
-                    } else if (currentLoadedClasses.length === 0 && data.list && Array.isArray(data.list) && data.list.length > 0) {
-                        const extracted = [];
-                        data.list.forEach(item => {
-                            if (item.type_id && item.type_name) {
-                                extracted.push({ type_id: item.type_id, type_name: item.type_name });
-                            }
-                        });
-                        if (extracted.length > 0) renderCategoryButtons(extracted);
+                    if (aliasList.length === 0) {
+                        const onlineAliases = await fetchWikidataAliases(rawInput);
+                        if (onlineAliases.length > 0) {
+                            aliasList = onlineAliases;
+                        }
                     }
 
-                    (data.list || []).forEach(v => {
-                        const key = v.vod_id || v.vod_name;
-                        if (!seenVodIds.has(key)) {
-                            seenVodIds.add(key);
-                            combinedList.push(v);
+                    const extraKeywords = [];
+                    for (const alias of aliasList) {
+                        const convAlias = converter ? await converter(alias) : alias;
+                        if (convAlias && convAlias !== currentSearchWord && !extraKeywords.includes(convAlias)) {
+                            extraKeywords.push(convAlias);
                         }
-                    });
+                    }
+
+                    // 命中台陸譯名別名時，並發查詢別名並自動合併去重
+                    if (extraKeywords.length > 0) {
+                        const aliasResults = await Promise.all(extraKeywords.slice(0, 3).map(kw => fetchCmsPage(kw).catch(() => ({ list: [] }))));
+                        const seenIds = new Set(list.map(v => `${v.vod_id}_${v.vod_name}`));
+                        aliasResults.forEach(resData => {
+                            (resData.list || []).forEach(v => {
+                                const key = `${v.vod_id}_${v.vod_name}`;
+                                if (!seenIds.has(key)) {
+                                    list.push(v);
+                                    seenIds.add(key);
+                                }
+                            });
+                        });
+                    }
                 }
 
-                maxPage = lastPageCount;
+                grid.style.opacity = '1';
 
-                if (combinedList.length === 0) {
+                if (data.class && Array.isArray(data.class) && data.class.length > 0) {
+                    renderCategoryButtons(data.class);
+                } else if (currentLoadedClasses.length === 0 && list.length > 0) {
+                    const extracted = [];
+                    list.forEach(item => {
+                        if (item.type_id && item.type_name) {
+                            extracted.push({ type_id: item.type_id, type_name: item.type_name });
+                        }
+                    });
+                    if (extracted.length > 0) {
+                        renderCategoryButtons(extracted);
+                    }
+                }
+
+                const parsedPageCount = parseInt(data.pagecount || data.page_count || 0, 10);
+                if (parsedPageCount > 0) {
+                    totalPages = parsedPageCount;
+                }
+
+                if (list.length === 0) {
+                    // 防呆機制：如果是翻到下一頁才發現沒資料（例如第9頁按下一頁到第10頁是空的），
+                    // 絕不清空畫面也不隱藏分頁列，而是自動退回上一頁並鎖定「下一頁」按鈕！
+                    if (isPageTurn && currentPage > 1) {
+                        currentPage = fallbackPage;
+                        totalPages = currentPage;
+                        isLastPageReached = true;
+                        grid.innerHTML = prevGridHtml;
+                        document.getElementById('pagination').style.display = prevPaginationDisplay || 'flex';
+                        updatePaginationUI();
+                        return;
+                    }
+
                     grid.innerHTML = `查無相關影片。`;
                     document.getElementById('pagination').style.display = 'none';
                     if (scrollToResults) {
@@ -2449,8 +3477,10 @@
                     return;
                 }
 
+                isLastPageReached = (totalPages > 0 && currentPage >= totalPages);
+
                 grid.innerHTML = '';
-                combinedList.forEach(vod => {
+                list.forEach(vod => {
                     const card = document.createElement('div');
                     card.className = 'movie-card';
                     card.innerHTML = `
@@ -2462,8 +3492,7 @@
                     grid.appendChild(card);
                 });
 
-                document.getElementById('pagination').style.display = 'flex';
-                document.getElementById('page-indicator').textContent = `第 ${currentPage} / ${maxPage} 頁`;
+                updatePaginationUI();
 
                 if (scrollToResults) {
                     setTimeout(() => {
@@ -2473,7 +3502,14 @@
                 }
 
             } catch (err) {
-                grid.innerHTML = `<span style="color:red">載入失敗: ${err.message}</span>`;
+                grid.style.opacity = '1';
+                if (isPageTurn && currentPage > 1) {
+                    currentPage = fallbackPage;
+                    grid.innerHTML = prevGridHtml;
+                    updatePaginationUI();
+                } else {
+                    grid.innerHTML = `<span style="color:red">載入失敗: ${err.message}</span>`;
+                }
             }
         }
 
@@ -2489,11 +3525,25 @@
             if (altSourcesPanel) altSourcesPanel.classList.remove('show');
         }
 
-        function renderEpisodes(vod, targetEpName = '', startTime = 0) {
+        // 僅針對「當前正在播放的這一集」的臨時已嘗試站點集合（防止無限循環；換片或換集自動重置，絕不封鎖其他影片）
+        let triedEpisodeApis = new Set();
+        let currentEpisodeAttemptKey = '';
+        let cachedAltResultsForEpisode = null;
+        let autoSwitchInProgress = false;
+
+        function getEpisodeAttemptKey(vodName, epName) {
+            return `${vodName || ''}__${epName || ''}`;
+        }
+
+        function renderEpisodes(vod, targetEpName = '', startTime = 0, preserveTriedSet = false) {
+            if (!preserveTriedSet) {
+                triedEpisodeApis.clear();
+                cachedAltResultsForEpisode = null;
+                autoSwitchInProgress = false;
+            }
             scrollToPlayerBox();
             closeAltSourcesPanel();
             currentVod = vod;
-            isAutoFailingOver = false;
             updateFavBtnUI();
             updateOpEdUI();
 
@@ -2532,9 +3582,21 @@
                 const btn = document.createElement('button');
                 btn.className = 'ep-btn';
                 btn.textContent = ep.name;
-                btn.onclick = () => {
+                btn.onclick = (ev) => {
                     document.querySelectorAll('.ep-btn').forEach(b => b.classList.remove('active'));
                     btn.classList.add('active');
+
+                    const nextAttemptKey = getEpisodeAttemptKey(vod.vod_name, ep.name);
+                    if (ev && ev.isTrusted && currentEpisodeAttemptKey !== nextAttemptKey) {
+                        triedEpisodeApis.clear();
+                        cachedAltResultsForEpisode = null;
+                        autoSwitchInProgress = false;
+                    }
+                    currentEpisodeAttemptKey = nextAttemptKey;
+
+                    const curApi = document.getElementById('site-select').value;
+                    if (curApi) triedEpisodeApis.add(curApi);
+
                     currentEpName = ep.name;
                     currentStreamUrl = ep.url;
 
@@ -2551,7 +3613,7 @@
         }
 
         // ==========================================
-        // 播放器中央轉圈 Loading + 即時下載速度 & 智慧全自動換源看門狗
+        // 播放器中央轉圈 Loading + 即時下載速度 & 智慧死鏈偵測引擎
         // ==========================================
         let loadingWatchdogTimer = null;
         let lastDataActivityTime = 0;
@@ -2577,13 +3639,19 @@
             return 0;
         }
 
-        function showPlayerLoading(speedLabel = '正在連線片源...', subLabel = '偵測串流中', showSwitchBtn = false, showSpin = true) {
+        function showPlayerLoading(speedLabel = '正在連線片源...', subLabel = '偵測串流中', showSwitchBtn = false, showSpin = true, switchBtnText = '', switchBtnDisabled = false) {
             if (!loadingOverlay) return;
             loadingSpinner.style.display = showSpin ? 'block' : 'none';
             loadingSpeedText.textContent = speedLabel;
             loadingSpeedText.style.color = showSwitchBtn ? '#ff6b6b' : '#00ff88';
             loadingStatusSub.textContent = subLabel;
-            btnDeadLinkSwitch.style.display = showSwitchBtn ? 'inline-block' : 'none';
+            if (showSwitchBtn) {
+                btnDeadLinkSwitch.style.display = 'inline-block';
+                btnDeadLinkSwitch.disabled = !!switchBtnDisabled;
+                btnDeadLinkSwitch.textContent = switchBtnText || '🔄 正在搜尋其他直鏈來源...';
+            } else {
+                btnDeadLinkSwitch.style.display = 'none';
+            }
             loadingOverlay.classList.add('show');
         }
 
@@ -2611,20 +3679,24 @@
             showPlayerLoading('載入中... 0 KB/s', '正在連線伺服器', false, true);
 
             loadingWatchdogTimer = setInterval(() => {
+                // 1. 使用者手動暫停時，絕對不顯示轉圈或換源提示，並持續刷新活動時間避免恢復播放時誤判超時
                 if (video.paused && !video.ended) {
                     lastDataActivityTime = Date.now();
                     hidePlayerLoading();
                     return;
                 }
 
+                // 2. 若影片已順暢播放且未處於等待緩衝狀態，自動隱藏 Loading
                 if (!video.paused && video.readyState >= 3 && !video.seeking) {
                     hidePlayerLoading();
                     return;
                 }
 
                 const now = Date.now();
+                const elapsedSec = (now - startTime) / 1000;
                 const idleSec = (now - lastDataActivityTime) / 1000;
 
+                // 檢查瀏覽器緩衝區是否有在推進（特別針對 iPhone 原生播放器）
                 let currentBufEnd = 0;
                 try {
                     if (video.buffered && video.buffered.length > 0) {
@@ -2641,20 +3713,22 @@
                 const isDownloading = (idleSec < 2.5);
 
                 if (isDownloading) {
+                    // 有數據正在下載：顯示即時網速或已緩衝秒數，延長寬限期至 30 秒不誤判
                     const bufAhead = getBufferedAhead().toFixed(1);
                     const speedDisplay = (currentSpeedStr !== '0 KB/s')
                         ? `載入中... ${currentSpeedStr}`
                         : `緩衝中... (已載入 ${bufAhead}s)`;
                     showPlayerLoading(speedDisplay, '串流數據下載中，請稍候', false, true);
+
+                    if (elapsedSec > 30) {
+                        showPlayerLoading(speedDisplay, '片源載入過慢，可嘗試切換其他直鏈', true, true);
+                    }
                 } else {
-                    const deadThreshold = hasReceivedAnyData ? 8 : 10;
+                    // 無任何下載跡象（0 KB/s 且緩衝區未動）：
+                    // 若完全沒收到任何數據超過 10 秒，或中途斷流停滯超過 15 秒，啟動智慧自動換源（附防無限循環保護）
+                    const deadThreshold = hasReceivedAnyData ? 15 : 10;
                     if (idleSec >= deadThreshold) {
-                        if (!isAutoFailingOver) {
-                            isAutoFailingOver = true;
-                            console.warn('[全自動換源觸發] 訊號逾時無數據，執行自動故障轉移...');
-                            showPlayerLoading('⚠️ 0 KB/s (連線中斷)', '正在為您自動搜尋備用線路...', false, true);
-                            triggerSmartSourceSwitch(true);
-                        }
+                        handleDeadLinkDetected('該來源連線逾時無回應');
                     } else {
                         const remainWait = Math.max(1, Math.ceil(deadThreshold - idleSec));
                         showPlayerLoading(
@@ -2668,8 +3742,15 @@
             }, 600);
         }
 
-        video.addEventListener('pause', () => { hidePlayerLoading(); });
-        video.addEventListener('play', () => { lastDataActivityTime = Date.now(); });
+        // 監聽原生 video 播放與緩衝事件
+        video.addEventListener('pause', () => {
+            hidePlayerLoading();
+        });
+
+        video.addEventListener('play', () => {
+            lastDataActivityTime = Date.now();
+        });
+
         video.addEventListener('waiting', () => {
             if (currentStreamUrl && !video.paused) {
                 showPlayerLoading(
@@ -2680,23 +3761,28 @@
                 );
             }
         });
+
         video.addEventListener('playing', () => {
             hasReceivedAnyData = true;
-            isAutoFailingOver = false;
             lastDataActivityTime = Date.now();
             hidePlayerLoading();
         });
+
         video.addEventListener('canplay', () => {
-            if (!video.paused) hidePlayerLoading();
+            if (!video.paused) {
+                hidePlayerLoading();
+            }
         });
 
         // ==========================================
-        // 智慧換源引擎 (雙引擎片名轉換 + 排除當前站點 + 單一源防死循環)
+        // 智慧「一鍵換源」引擎（動態讀取使用者上傳設定檔的直鏈站點）
         // ==========================================
         let isSearchingSources = false;
 
         function normalizeTitleForMatch(str) {
-            return (str || '').toLowerCase().replace(/[\s\-_：:（）()【】\[\]第季部集全HD高清藍光]/g, '');
+            return (str || '')
+                .toLowerCase()
+                .replace(/[\s\-_：:（）()【】\[\]第季部集全HD高清藍光]/g, '');
         }
 
         function extractEpisodeListFromVod(vod) {
@@ -2720,9 +3806,11 @@
             if (!epList || epList.length === 0) return null;
             if (!targetEpName) return epList[0];
 
+            // 1. 精準比對集數名稱
             let found = epList.find(e => e.name === targetEpName);
             if (found) return found;
 
+            // 2. 提取集數數字比對（例如「第01集」與「第1集」或「01」）
             const numMatch = targetEpName.match(/(\d+)/);
             if (numMatch) {
                 const targetNum = parseInt(numMatch[1], 10);
@@ -2733,35 +3821,33 @@
                 if (found) return found;
             }
 
+            // 3. 依索引位置回退
             if (fallbackIdx >= 0 && fallbackIdx < epList.length) {
                 return epList[fallbackIdx];
             }
             return epList[0];
         }
 
-        async function triggerSmartSourceSwitch(autoPlayFirst = false) {
-            if (!currentVod || !currentVod.vod_name) {
-                if (!autoPlayFirst) alert('請先選擇一部影片後再使用換源功能');
-                return;
+        async function searchAvailableDirectSources() {
+            if (cachedAltResultsForEpisode && cachedAltResultsForEpisode.key === currentEpisodeAttemptKey) {
+                return cachedAltResultsForEpisode.results;
             }
 
             const candidateSites = (localPresetSites || []).filter(s => s && s.api && s.api.startsWith('http'));
-            if (candidateSites.length === 0) {
-                if (!autoPlayFirst) alert('尚未偵測到設定檔內的直鏈站點！請先點擊左上角「📁 載入設定檔」上傳您的 .txt 設定檔。');
-                return;
+            if (candidateSites.length === 0) return [];
+
+            let searchWord = currentVod.vod_name;
+            if (converter) {
+                try { searchWord = await converter(searchWord); } catch (e) {}
             }
-
-            if (isSearchingSources) return;
-            isSearchingSources = true;
-
-            if (!autoPlayFirst) {
-                altSourcesPanel.classList.add('show');
-                altSourcesStatus.textContent = `🔍 正在搜尋設定檔中的 ${candidateSites.length} 個直鏈站點...`;
-                altSourcesList.innerHTML = '';
+            let aliasCandidates = resolveAliasKeywords(currentVod.vod_name);
+            if (aliasCandidates.length === 0) {
+                aliasCandidates = await fetchWikidataAliases(currentVod.vod_name);
             }
-
-            const currentApi = document.getElementById('site-select').value;
-            const queries = await getDualSearchQueries(currentVod.vod_name);
+            let altSearchWord = '';
+            if (aliasCandidates.length > 0) {
+                altSearchWord = converter ? await converter(aliasCandidates[0]) : aliasCandidates[0];
+            }
 
             const epButtons = Array.from(document.querySelectorAll('.ep-btn'));
             const currentEpIdx = Math.max(0, epButtons.findIndex(b => b.classList.contains('active')));
@@ -2769,106 +3855,171 @@
 
             const tasks = candidateSites.map(async (site) => {
                 try {
-                    for (const qWord of queries) {
-                        const query = `api=${encodeURIComponent(site.api)}&pg=1&wd=${encodeURIComponent(qWord)}`;
-                        const res = await fetch(`/api/cms/list?${query}`);
-                        const data = await res.json();
-                        const list = data.list || [];
-                        if (list.length === 0) continue;
-
-                        let bestVod = list.find(v => v.vod_name === currentVod.vod_name) ||
-                                      list.find(v => normalizeTitleForMatch(v.vod_name) === targetNorm) ||
-                                      list.find(v => normalizeTitleForMatch(v.vod_name).includes(targetNorm) || targetNorm.includes(normalizeTitleForMatch(v.vod_name))) ||
-                                      list[0];
-
-                        const epList = extractEpisodeListFromVod(bestVod);
-                        const matchedEp = matchEpisodeFromList(epList, currentEpName, currentEpIdx);
-                        if (!matchedEp || !matchedEp.url) continue;
-
-                        return {
-                            siteName: site.name,
-                            siteApi: site.api,
-                            vod: bestVod,
-                            ep: matchedEp,
-                            isCurrentSite: (site.api === currentApi)
-                        };
+                    const query = `api=${encodeURIComponent(site.api)}&pg=1&wd=${encodeURIComponent(searchWord)}`;
+                    const res = await fetch(`/api/cms/list?${query}`);
+                    const data = await res.json();
+                    let list = data.list || [];
+                    if (list.length === 0 && altSearchWord && altSearchWord !== searchWord) {
+                        const altQuery = `api=${encodeURIComponent(site.api)}&pg=1&wd=${encodeURIComponent(altSearchWord)}`;
+                        const altRes = await fetch(`/api/cms/list?${altQuery}`);
+                        const altData = await altRes.json();
+                        list = altData.list || [];
                     }
-                    return null;
+                    if (list.length === 0) return null;
+
+                    let bestVod = list.find(v => v.vod_name === currentVod.vod_name) ||
+                                  list.find(v => normalizeTitleForMatch(v.vod_name) === targetNorm) ||
+                                  list.find(v => normalizeTitleForMatch(v.vod_name).includes(targetNorm) || targetNorm.includes(normalizeTitleForMatch(v.vod_name))) ||
+                                  list[0];
+
+                    const epList = extractEpisodeListFromVod(bestVod);
+                    const matchedEp = matchEpisodeFromList(epList, currentEpName, currentEpIdx);
+                    if (!matchedEp || !matchedEp.url) return null;
+
+                    return {
+                        siteName: site.name.replace(/\s*\(直鏈\)/g, ''),
+                        siteApi: site.api,
+                        vod: bestVod,
+                        ep: matchedEp
+                    };
                 } catch (e) {
                     return null;
                 }
             });
 
             const results = (await Promise.all(tasks)).filter(Boolean);
+            cachedAltResultsForEpisode = { key: currentEpisodeAttemptKey, results };
+            return results;
+        }
+
+        function switchToAlternativeSourceItem(item, isAuto = false) {
+            if (!item || !item.siteApi) return;
+            triedEpisodeApis.add(item.siteApi);
+
+            const siteSelect = document.getElementById('site-select');
+            if (siteSelect) {
+                siteSelect.value = item.siteApi;
+            }
+
+            const resumeSec = (video && video.currentTime > 3) ? video.currentTime : 0;
+            // 保留當前這一集的 triedEpisodeApis，防止無限循環
+            renderEpisodes(item.vod, item.ep.name, resumeSec, true);
+
+            skipToast.textContent = isAuto
+                ? `⚡ 原來源無回應，已自動改用【${item.siteName}】(${item.ep.name})`
+                : `🔄 已切換至【${item.siteName}】- ${item.ep.name}`;
+            skipToast.style.display = 'block';
+            setTimeout(() => { skipToast.style.display = 'none'; }, 3000);
+        }
+
+        async function handleDeadLinkDetected(reasonText = '該來源連線逾時') {
+            if (autoSwitchInProgress || !currentVod || !currentVod.vod_name) return;
+
+            const candidateSites = (localPresetSites || []).filter(s => s && s.api && s.api.startsWith('http'));
+            if (candidateSites.length === 0) {
+                showPlayerLoading('⚠️ 0 KB/s (無回應)', '請先載入設定檔以啟用自動換源', true, false, '⚠️ 尚未載入直鏈設定檔', true);
+                return;
+            }
+
+            autoSwitchInProgress = true;
+            const curApi = document.getElementById('site-select').value;
+            if (curApi) triedEpisodeApis.add(curApi);
+
+            showPlayerLoading('⚠️ 0 KB/s (無回應)', '正在自動尋找其他可用直鏈...', true, true, '🔍 搜尋替代直鏈中...', true);
+
+            const results = await searchAvailableDirectSources();
+            // 過濾出「有這部片且本集尚未嘗試過」的站點（防無限循環熔斷）
+            const untriedAlternatives = results.filter(r => !triedEpisodeApis.has(r.siteApi));
+
+            if (untriedAlternatives.length === 0) {
+                // 全網僅 1 個來源，或所有有此片的站點本集都已試過一輪 -> 熔斷停止，不盲目空轉
+                const onlyOneSource = (results.length <= 1);
+                const msgTitle = onlyOneSource ? '⚠️ 僅此 1 站有資源 (無其他源)' : `❌ 已試遍所有 ${results.length} 個可用直鏈`;
+                const subMsg = onlyOneSource ? '其他直鏈站點均無收錄此影片' : '目前所有來源皆無回應，已停止自動切換';
+                showPlayerLoading('⚠️ 無法播放', subMsg, true, false, msgTitle, true);
+                return;
+            }
+
+            const nextTarget = untriedAlternatives[0];
+            showPlayerLoading(
+                '⚠️ 來源無回應',
+                `即將自動改用【${nextTarget.siteName}】`,
+                true,
+                true,
+                `🔄 改用【${nextTarget.siteName}】播放`,
+                false
+            );
+
+            setTimeout(() => {
+                // 確認在倒數期間使用者沒有手動切換別集或按下暫停
+                if (!video.paused && getEpisodeAttemptKey(currentVod && currentVod.vod_name, currentEpName) === currentEpisodeAttemptKey) {
+                    autoSwitchInProgress = false;
+                    switchToAlternativeSourceItem(nextTarget, true);
+                } else {
+                    autoSwitchInProgress = false;
+                }
+            }, 900);
+        }
+
+        async function triggerSmartSourceSwitch(autoPlayFirst = false) {
+            if (!currentVod || !currentVod.vod_name) {
+                alert('請先選擇一部影片後再使用換源功能');
+                return;
+            }
+
+            const candidateSites = (localPresetSites || []).filter(s => s && s.api && s.api.startsWith('http'));
+            if (candidateSites.length === 0) {
+                alert('尚未偵測到設定檔內的直鏈站點！請先點擊左上角「📁 載入設定檔」上傳您的 .txt 設定檔。');
+                return;
+            }
+
+            if (isSearchingSources) return;
+            isSearchingSources = true;
+
+            altSourcesPanel.classList.add('show');
+            altSourcesStatus.textContent = `🔍 正在搜尋設定檔中的 ${candidateSites.length} 個直鏈站點...`;
+            altSourcesList.innerHTML = '';
+
+            const currentApi = document.getElementById('site-select').value;
+            const results = await searchAvailableDirectSources();
             isSearchingSources = false;
 
-            // 嚴格過濾掉當前失敗站點，杜絕同源原地打轉
-            const alternatives = results.filter(r => !r.isCurrentSite);
-
-            if (autoPlayFirst) {
-                if (alternatives.length > 0) {
-                    const targetSource = alternatives[0];
-                    const resumeSec = (video && video.currentTime > 3) ? video.currentTime : 0;
-                    
-                    const siteSelect = document.getElementById('site-select');
-                    if (siteSelect && targetSource.siteApi) {
-                        siteSelect.value = targetSource.siteApi;
-                    }
-                    
-                    hidePlayerLoading();
-                    renderEpisodes(targetSource.vod, targetSource.ep.name, resumeSec);
-
-                    skipToast.textContent = `⚡ 連線中斷，已自動切換至【${targetSource.siteName}】${targetSource.ep.name} (接續 ${formatTime(resumeSec)})`;
-                    skipToast.style.display = 'block';
-                    setTimeout(() => { skipToast.style.display = 'none'; }, 2800);
-                } else {
-                    hidePlayerLoading();
-                    skipToast.textContent = `⚠️ 無其他替代直鏈，正在原地嘗試重新連線...`;
-                    skipToast.style.display = 'block';
-                    setTimeout(() => { skipToast.style.display = 'none'; }, 2500);
-
-                    const resumeSec = (video && video.currentTime > 3) ? video.currentTime : 0;
-                    playStream(currentStreamUrl, `${currentVod.vod_name} - ${currentEpName}`, resumeSec);
-                }
-                return;
-            }
-
-            // 手動選源面板渲染
             if (results.length === 0) {
-                altSourcesStatus.textContent = `❌ 其他直鏈站點均未找到《${currentVod.vod_name}》`;
+                altSourcesStatus.textContent = `❌ 設定檔直鏈均未找到《${currentVod.vod_name}》`;
                 return;
             }
 
-            altSourcesStatus.textContent = `✅ 找到 ${results.length} 個可用直鏈來源（點擊立即切換）：`;
+            if (results.length === 1 && results[0].siteApi === currentApi) {
+                altSourcesStatus.textContent = `⚠️ 僅【${results[0].siteName}】有此片資源（無其他源可換）`;
+            } else {
+                altSourcesStatus.textContent = `✅ 找到 ${results.length} 個直鏈來源（點擊立即切換）：`;
+            }
             altSourcesList.innerHTML = '';
 
             results.forEach((item) => {
+                const isCur = (item.siteApi === currentApi);
                 const chip = document.createElement('button');
                 chip.type = 'button';
-                chip.className = `alt-source-chip ${item.isCurrentSite ? 'active-source' : ''}`;
-                chip.textContent = `${item.siteName} (${item.ep.name})`;
+                chip.className = `alt-source-chip ${isCur ? 'active-source' : ''}`;
+                chip.textContent = isCur ? `${item.siteName} (目前)` : `${item.siteName} (${item.ep.name})`;
                 chip.onclick = () => {
-                    document.querySelectorAll('.alt-source-chip').forEach(c => c.classList.remove('active-source'));
-                    chip.classList.add('active-source');
-
-                    const siteSelect = document.getElementById('site-select');
-                    if (siteSelect && item.siteApi) {
-                        siteSelect.value = item.siteApi;
-                    }
-
-                    const resumeSec = (video && video.currentTime > 3) ? video.currentTime : 0;
-                    renderEpisodes(item.vod, item.ep.name, resumeSec);
-
-                    skipToast.textContent = `🔄 已切換至【${item.siteName}】- ${item.ep.name}`;
-                    skipToast.style.display = 'block';
-                    setTimeout(() => { skipToast.style.display = 'none'; }, 2600);
+                    if (isCur) return;
+                    switchToAlternativeSourceItem(item, false);
                 };
                 altSourcesList.appendChild(chip);
             });
+
+            if (autoPlayFirst) {
+                const untried = results.filter(r => !triedEpisodeApis.has(r.siteApi));
+                const alternative = untried[0] || results.find(r => r.siteApi !== currentApi);
+                if (alternative) {
+                    switchToAlternativeSourceItem(alternative, false);
+                }
+            }
         }
 
         // ==========================================
-        // 核心播放控制 (維持原汁原味高穩定起播通道)
+        // 核心播放控制 (秒開配置 + 原地斷線救援 + 網速監控)
         // ==========================================
         function playStream(rawUrl, title, startTime = 0) {
             isTriggeringNext = false;
@@ -2912,6 +4063,7 @@
                     fragLoadingTimeOut: 20000
                 });
 
+                // 攔截切片下載事件計算即時下載速度 (MB/s 或 KB/s)
                 hlsInstance.on(Hls.Events.FRAG_LOADED, (event, data) => {
                     hasReceivedAnyData = true;
                     lastDataActivityTime = Date.now();
@@ -2957,15 +4109,9 @@
                         if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
                             hlsInstance.recoverMediaError();
                         } else if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-                            if (!isAutoFailingOver) {
-                                isAutoFailingOver = true;
-                                triggerSmartSourceSwitch(true);
-                            }
+                            handleDeadLinkDetected('該片源伺服器無法連線');
                         } else {
-                            if (!isAutoFailingOver) {
-                                isAutoFailingOver = true;
-                                triggerSmartSourceSwitch(true);
-                            }
+                            handleDeadLinkDetected('片源串流解析異常');
                         }
                     }
                 });
@@ -2980,10 +4126,7 @@
                     video.removeEventListener('loadedmetadata', onMeta);
                 };
                 const onErr = () => {
-                    if (!isAutoFailingOver) {
-                        isAutoFailingOver = true;
-                        triggerSmartSourceSwitch(true);
-                    }
+                    handleDeadLinkDetected('iOS 播放器無法載入此片源');
                     video.removeEventListener('error', onErr);
                 };
                 video.addEventListener('loadedmetadata', onMeta);
@@ -2992,6 +4135,9 @@
             }
         }
 
+        // ==========================================
+        // 全劇片頭 / 片尾記憶規則管理
+        // ==========================================
         let isTriggeringNext = false;
 
         function getOpEdRules() {
