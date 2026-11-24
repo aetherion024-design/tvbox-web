@@ -3410,14 +3410,62 @@
                 return await r.json();
             };
 
-            try {
-                let data = await fetchCmsPage(currentSearchWord);
-                let list = data.list || [];
+            const normalizeSearchFilterStr = (s) => (s || '').toLowerCase().replace(/[\s\-_：:（）()【】\[\]·.!！?？。，,]/g, '');
 
-                // 若為搜尋狀態，啟動雙引擎別名解析：
-                // 引擎 A（方案二）：本地 500+ 精選台陸譯名庫（0 毫秒秒查）
-                // 引擎 B（方案一）：若本地字典未收錄，自動透過 Wikidata 線上抓出大陸正式譯名（附快取與 1.6s 超時保護）
-                if (currentSearchWord && currentPage === 1) {
+            const filterAndRankSearchResults = async (rawList, targetKeywords) => {
+                if (!Array.isArray(rawList) || rawList.length === 0) return [];
+                const normTargets = [];
+                for (const kw of targetKeywords) {
+                    const conv = converter ? await converter(kw) : kw;
+                    const n1 = normalizeSearchFilterStr(kw);
+                    const n2 = normalizeSearchFilterStr(conv);
+                    if (n1 && !normTargets.includes(n1)) normTargets.push(n1);
+                    if (n2 && !normTargets.includes(n2)) normTargets.push(n2);
+                }
+                if (normTargets.length === 0) return rawList;
+
+                const scored = [];
+                for (const vod of rawList) {
+                    const rawTitle = vod.vod_name || '';
+                    const convTitle = converter ? await converter(rawTitle) : rawTitle;
+                    const nTitle1 = normalizeSearchFilterStr(rawTitle);
+                    const nTitle2 = normalizeSearchFilterStr(convTitle);
+
+                    let matchScore = 0;
+                    for (const t of normTargets) {
+                        if (!t) continue;
+                        if (nTitle1 === t || nTitle2 === t) {
+                            matchScore = Math.max(matchScore, 100); // 完全一致
+                        } else if (nTitle1.startsWith(t) || nTitle2.startsWith(t)) {
+                            matchScore = Math.max(matchScore, 80);  // 以目標片名開頭（例如「速度与激情1」~「速度与激情10」）
+                        } else if (t.length >= 2 && (nTitle1.includes(t) || nTitle2.includes(t))) {
+                            matchScore = Math.max(matchScore, 50);  // 片名完整包含目標片名
+                        }
+                    }
+
+                    if (matchScore > 0) {
+                        scored.push({ vod, matchScore });
+                    }
+                }
+
+                // 若嚴格片名過濾後有結果，則淘汰所有無關雜訊並按精準度＋系列集數順序排列
+                if (scored.length > 0) {
+                    scored.sort((a, b) => {
+                        if (b.matchScore !== a.matchScore) return b.matchScore - a.matchScore;
+                        return (a.vod.vod_name || '').localeCompare((b.vod.vod_name || ''), 'zh-CN', { numeric: true });
+                    });
+                    return scored.map(s => s.vod);
+                }
+
+                // 安全保底：僅當資源站片名完全不匹配時才保留原結果，避免畫面空白
+                return rawList;
+            };
+
+            try {
+                let data = { list: [] };
+                let list = [];
+
+                if (currentSearchWord) {
                     const rawInput = currentRawSearchWord || currentSearchWord;
                     let aliasList = resolveAliasKeywords(rawInput);
 
@@ -3428,28 +3476,53 @@
                         }
                     }
 
-                    const extraKeywords = [];
+                    const aliasKeywords = [];
                     for (const alias of aliasList) {
                         const convAlias = converter ? await converter(alias) : alias;
-                        if (convAlias && convAlias !== currentSearchWord && !extraKeywords.includes(convAlias)) {
-                            extraKeywords.push(convAlias);
+                        if (convAlias && !aliasKeywords.includes(convAlias)) {
+                            aliasKeywords.push(convAlias);
                         }
                     }
 
-                    // 命中台陸譯名別名時，並發查詢別名並自動合併去重
-                    if (extraKeywords.length > 0) {
-                        const aliasResults = await Promise.all(extraKeywords.slice(0, 3).map(kw => fetchCmsPage(kw).catch(() => ({ list: [] }))));
-                        const seenIds = new Set(list.map(v => `${v.vod_id}_${v.vod_name}`));
-                        aliasResults.forEach(resData => {
-                            (resData.list || []).forEach(v => {
-                                const key = `${v.vod_id}_${v.vod_name}`;
-                                if (!seenIds.has(key)) {
-                                    list.push(v);
-                                    seenIds.add(key);
-                                }
+                    // 規則 1：若命中台陸譯名對照（如「玩命關頭」->「速度与激情」），直接優先用大陸譯名查詢，避免用台灣譯名向資源站撈出拆字雜訊
+                    if (aliasKeywords.length > 0) {
+                        const primaryAlias = aliasKeywords[0];
+                        data = await fetchCmsPage(primaryAlias);
+                        list = data.list || [];
+
+                        // 若首選別名沒結果或有多個正式譯名，補查其餘別名
+                        if (aliasKeywords.length > 1) {
+                            const extraAliasRes = await Promise.all(aliasKeywords.slice(1, 3).map(kw => fetchCmsPage(kw).catch(() => ({ list: [] }))));
+                            const seenIds = new Set(list.map(v => `${v.vod_id}_${v.vod_name}`));
+                            extraAliasRes.forEach(resData => {
+                                (resData.list || []).forEach(v => {
+                                    const key = `${v.vod_id}_${v.vod_name}`;
+                                    if (!seenIds.has(key)) {
+                                        list.push(v);
+                                        seenIds.add(key);
+                                    }
+                                });
                             });
-                        });
+                        }
+
+                        // 若別名完全查無資料，才退回用原始關鍵字查詢
+                        if (list.length === 0 && primaryAlias !== currentSearchWord) {
+                            data = await fetchCmsPage(currentSearchWord);
+                            list = data.list || [];
+                        }
+                    } else {
+                        data = await fetchCmsPage(currentSearchWord);
+                        list = data.list || [];
                     }
+
+                    // 規則 2 & 3：執行片名前綴與核心詞精準過濾＋系列排序（只保留「速度与激情」開頭或完整包含該詞的系列作）
+                    const filterTargets = aliasKeywords.length > 0
+                        ? [...aliasKeywords, rawInput, currentSearchWord]
+                        : [rawInput, currentSearchWord];
+                    list = await filterAndRankSearchResults(list, filterTargets);
+                } else {
+                    data = await fetchCmsPage('');
+                    list = data.list || [];
                 }
 
                 grid.style.opacity = '1';
