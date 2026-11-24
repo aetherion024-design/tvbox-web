@@ -1951,6 +1951,27 @@
         let speechRecognition = null;
         let isVoiceListening = false;
 
+        function cleanupVoiceRecognizer(forceAbort = false) {
+            isVoiceListening = false;
+            voiceSearchBtn.classList.remove('listening');
+            voiceSearchBtn.textContent = '🎤';
+            document.getElementById('search-input').placeholder = '繁簡皆可或點擊語音...';
+            if (speechRecognition) {
+                const rec = speechRecognition;
+                speechRecognition = null;
+                try {
+                    rec.onresult = null;
+                    rec.onerror = null;
+                    rec.onend = null;
+                    if (forceAbort && rec.abort) {
+                        rec.abort();
+                    } else if (rec.stop) {
+                        rec.stop();
+                    }
+                } catch (e) {}
+            }
+        }
+
         function startVoiceSearch() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRecognition) {
@@ -1958,14 +1979,15 @@
                 return;
             }
 
-            if (isVoiceListening && speechRecognition) {
-                speechRecognition.stop();
+            if (isVoiceListening || speechRecognition) {
+                cleanupVoiceRecognizer(true);
                 return;
             }
 
             try {
                 speechRecognition = new SpeechRecognition();
                 speechRecognition.lang = 'zh-TW';
+                speechRecognition.continuous = false;
                 speechRecognition.interimResults = false;
                 speechRecognition.maxAlternatives = 1;
 
@@ -1977,8 +1999,10 @@
                 };
 
                 speechRecognition.onresult = (event) => {
-                    const transcript = event.results[0][0].transcript || '';
+                    const transcript = (event.results && event.results[0] && event.results[0][0] && event.results[0][0].transcript) || '';
                     const cleaned = transcript.replace(/[。，！？、.!?,]/g, '').trim();
+                    // 取得語音文字後立即強制 abort 並釋放實體，讓 iPhone 立刻結束麥克風與音訊錄製狀態
+                    cleanupVoiceRecognizer(true);
                     if (cleaned) {
                         document.getElementById('search-input').value = cleaned;
                         toggleClearSearchBtn();
@@ -1988,23 +2012,19 @@
 
                 speechRecognition.onerror = (event) => {
                     console.warn('語音辨識錯誤:', event.error);
+                    cleanupVoiceRecognizer(true);
                     if (event.error === 'not-allowed') {
                         alert('請允許瀏覽器使用麥克風權限，才能使用語音搜尋。');
                     }
                 };
 
                 speechRecognition.onend = () => {
-                    isVoiceListening = false;
-                    voiceSearchBtn.classList.remove('listening');
-                    voiceSearchBtn.textContent = '🎤';
-                    document.getElementById('search-input').placeholder = '繁簡皆可或點擊語音...';
+                    cleanupVoiceRecognizer(false);
                 };
 
                 speechRecognition.start();
             } catch (err) {
-                isVoiceListening = false;
-                voiceSearchBtn.classList.remove('listening');
-                voiceSearchBtn.textContent = '🎤';
+                cleanupVoiceRecognizer(true);
             }
         }
 
@@ -3802,15 +3822,26 @@
             return epList;
         }
 
-        function matchEpisodeFromList(epList, targetEpName, fallbackIdx = 0) {
+        function normalizeEpLabel(str) {
+            return (str || '').toLowerCase().replace(/[\s\-_第集期話话回全]/g, '');
+        }
+
+        function matchEpisodeFromList(epList, targetEpName) {
             if (!epList || epList.length === 0) return null;
             if (!targetEpName) return epList[0];
 
-            // 1. 精準比對集數名稱
+            // 1. 精準比對集數名稱（例如「第1179集」===「第1179集」）
             let found = epList.find(e => e.name === targetEpName);
             if (found) return found;
 
-            // 2. 提取集數數字比對（例如「第01集」與「第1集」或「01」）
+            // 2. 去除「第/集/話/期」等裝飾字後比對（例如「第1179集」vs「1179」vs「第1179話」）
+            const normTarget = normalizeEpLabel(targetEpName);
+            if (normTarget) {
+                found = epList.find(e => normalizeEpLabel(e.name) === normTarget);
+                if (found) return found;
+            }
+
+            // 3. 嚴格提取集數數字比對（例如「第1179集」只會匹配數字為 1179 的集數，絕不拿第01集魚目混珠）
             const numMatch = targetEpName.match(/(\d+)/);
             if (numMatch) {
                 const targetNum = parseInt(numMatch[1], 10);
@@ -3821,11 +3852,8 @@
                 if (found) return found;
             }
 
-            // 3. 依索引位置回退
-            if (fallbackIdx >= 0 && fallbackIdx < epList.length) {
-                return epList[fallbackIdx];
-            }
-            return epList[0];
+            // 找不到完全符合的集數時直接回傳 null（寧缺勿濫，絕不抓不相干的第1集）
+            return null;
         }
 
         async function searchAvailableDirectSources() {
@@ -3849,8 +3877,6 @@
                 altSearchWord = converter ? await converter(aliasCandidates[0]) : aliasCandidates[0];
             }
 
-            const epButtons = Array.from(document.querySelectorAll('.ep-btn'));
-            const currentEpIdx = Math.max(0, epButtons.findIndex(b => b.classList.contains('active')));
             const targetNorm = normalizeTitleForMatch(currentVod.vod_name);
 
             const tasks = candidateSites.map(async (site) => {
@@ -3867,21 +3893,34 @@
                     }
                     if (list.length === 0) return null;
 
-                    let bestVod = list.find(v => v.vod_name === currentVod.vod_name) ||
-                                  list.find(v => normalizeTitleForMatch(v.vod_name) === targetNorm) ||
-                                  list.find(v => normalizeTitleForMatch(v.vod_name).includes(targetNorm) || targetNorm.includes(normalizeTitleForMatch(v.vod_name))) ||
-                                  list[0];
+                    // 先篩選出片名吻合的候選條目（依精準度排序，例如《蠟筆小新》可能有劇場版與連載版多筆結果）
+                    const titleMatchedVods = list.filter(v => {
+                        const vNorm = normalizeTitleForMatch(v.vod_name);
+                        return v.vod_name === currentVod.vod_name ||
+                               vNorm === targetNorm ||
+                               (targetNorm.length >= 2 && (vNorm.includes(targetNorm) || targetNorm.includes(vNorm)));
+                    }).sort((a, b) => {
+                        const aExact = (a.vod_name === currentVod.vod_name || normalizeTitleForMatch(a.vod_name) === targetNorm) ? 1 : 0;
+                        const bExact = (b.vod_name === currentVod.vod_name || normalizeTitleForMatch(b.vod_name) === targetNorm) ? 1 : 0;
+                        return bExact - aExact;
+                    });
 
-                    const epList = extractEpisodeListFromVod(bestVod);
-                    const matchedEp = matchEpisodeFromList(epList, currentEpName, currentEpIdx);
-                    if (!matchedEp || !matchedEp.url) return null;
+                    // 逐一檢查所有同名條目，找出真正包含目標集數（如「第1179集」）的那一筆
+                    for (const candidateVod of titleMatchedVods) {
+                        const epList = extractEpisodeListFromVod(candidateVod);
+                        const matchedEp = matchEpisodeFromList(epList, currentEpName);
+                        if (matchedEp && matchedEp.url) {
+                            return {
+                                siteName: site.name.replace(/\s*\(直鏈\)/g, ''),
+                                siteApi: site.api,
+                                vod: candidateVod,
+                                ep: matchedEp
+                            };
+                        }
+                    }
 
-                    return {
-                        siteName: site.name.replace(/\s*\(直鏈\)/g, ''),
-                        siteApi: site.api,
-                        vod: bestVod,
-                        ep: matchedEp
-                    };
+                    // 該站點沒有任何條目收錄此集數 -> 排除該站
+                    return null;
                 } catch (e) {
                     return null;
                 }
@@ -3976,45 +4015,47 @@
             if (isSearchingSources) return;
             isSearchingSources = true;
 
-            altSourcesPanel.classList.add('show');
-            altSourcesStatus.textContent = `🔍 正在搜尋設定檔中的 ${candidateSites.length} 個直鏈站點...`;
-            altSourcesList.innerHTML = '';
+            const origBtnText = btnSwitchSource ? btnSwitchSource.textContent : '🔄 換源';
+            if (btnSwitchSource) {
+                btnSwitchSource.disabled = true;
+                btnSwitchSource.textContent = '🔍 搜尋中...';
+            }
 
             const currentApi = document.getElementById('site-select').value;
+            if (currentApi) triedEpisodeApis.add(currentApi);
+
             const results = await searchAvailableDirectSources();
             isSearchingSources = false;
 
-            if (results.length === 0) {
-                altSourcesStatus.textContent = `❌ 設定檔直鏈均未找到《${currentVod.vod_name}》`;
+            if (btnSwitchSource) {
+                btnSwitchSource.disabled = false;
+                btnSwitchSource.textContent = origBtnText;
+            }
+
+            const epLabel = currentEpName || '此集';
+            const otherStations = results.filter(r => r.siteApi !== currentApi);
+
+            // 若全網直鏈站點搜完，僅目前這 1 個站點有收錄此集 -> 直接跳出明確提示，不進行無意義切換
+            if (otherStations.length === 0) {
+                const curName = getSiteNameByApi(currentApi) || '目前站點';
+                closeAltSourcesPanel();
+                skipToast.textContent = `⚠️ 僅【${curName}】有「${epLabel}」，其他直鏈站點均無收錄此集`;
+                skipToast.style.display = 'block';
+                setTimeout(() => { skipToast.style.display = 'none'; }, 3200);
                 return;
             }
 
-            if (results.length === 1 && results[0].siteApi === currentApi) {
-                altSourcesStatus.textContent = `⚠️ 僅【${results[0].siteName}】有此片資源（無其他源可換）`;
-            } else {
-                altSourcesStatus.textContent = `✅ 找到 ${results.length} 個直鏈來源（點擊立即切換）：`;
+            // 優先挑選「本集尚未試過」的下一站；若手動把所有站點都按過一輪了，則重置循環並切到下一個不同站點
+            let untried = otherStations.filter(r => !triedEpisodeApis.has(r.siteApi));
+            if (untried.length === 0) {
+                triedEpisodeApis.clear();
+                if (currentApi) triedEpisodeApis.add(currentApi);
+                untried = otherStations;
             }
-            altSourcesList.innerHTML = '';
 
-            results.forEach((item) => {
-                const isCur = (item.siteApi === currentApi);
-                const chip = document.createElement('button');
-                chip.type = 'button';
-                chip.className = `alt-source-chip ${isCur ? 'active-source' : ''}`;
-                chip.textContent = isCur ? `${item.siteName} (目前)` : `${item.siteName} (${item.ep.name})`;
-                chip.onclick = () => {
-                    if (isCur) return;
-                    switchToAlternativeSourceItem(item, false);
-                };
-                altSourcesList.appendChild(chip);
-            });
-
-            if (autoPlayFirst) {
-                const untried = results.filter(r => !triedEpisodeApis.has(r.siteApi));
-                const alternative = untried[0] || results.find(r => r.siteApi !== currentApi);
-                if (alternative) {
-                    switchToAlternativeSourceItem(alternative, false);
-                }
+            const nextTarget = untried[0];
+            if (nextTarget) {
+                switchToAlternativeSourceItem(nextTarget, false);
             }
         }
 
